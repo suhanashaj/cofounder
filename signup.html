@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Signup</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="left">
+        <h2>Join Us Today,</h2>
+        <p>Create your account and start your journey with us.</p>
+    </div>
+
+    <div class="right">
+        <h2>Signup</h2>
+
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+
+        <p id="error"></p>
+
+        <button onclick="signup()">Signup</button>
+        <button class="secondary-btn" onclick="goToLogin()">Back to Login</button>
+    </div>
+</div>
+
+<script>
+function goToLogin() {
+    window.location.href = "login.html";
+}
+
+function signup() {
+    let user = document.getElementById("username").value;
+    let pass = document.getElementById("password").value;
+
+    let passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).+$/;
+
+    if (!passwordPattern.test(pass)) {
+        document.getElementById("error").innerText =
+            "Invalid password format! Use letters, numbers & special characters.";
+        return;
+    }
+
+    localStorage.setItem("username", user);
+    localStorage.setItem("password", pass);
+
+    alert("Signup successful!");
+    window.location.href = "login.html";
+}
+</script>
+
+</body>
+</html>
