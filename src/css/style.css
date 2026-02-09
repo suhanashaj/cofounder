@@ -1,0 +1,250 @@
+/* =========================
+   GLOBAL RESET & BASE
+========================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1e1e2f, #2b1055, #3c2a7d);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #ffffff;
+}
+
+/* =========================
+   CARD CONTAINER
+========================= */
+.container {
+    width: 900px;
+    max-width: 95%;
+    min-height: 500px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(14px);
+}
+
+/* =========================
+   LEFT PANEL (BRANDING)
+========================= */
+.left {
+    flex: 1;
+    background: linear-gradient(160deg, #6a5cff, #8b7bff);
+    padding: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.left h2 {
+    font-size: 30px;
+    margin-bottom: 12px;
+}
+
+.left p {
+    font-size: 15px;
+    line-height: 1.6;
+    opacity: 0.95;
+}
+
+/* =========================
+   RIGHT PANEL (FORM)
+========================= */
+.right {
+    flex: 1;
+    padding: 50px;
+}
+
+.right h2 {
+    font-size: 26px;
+    margin-bottom: 25px;
+}
+
+/* =========================
+   INPUTS & SELECTS
+========================= */
+input,
+select {
+    width: 100%;
+    padding: 13px 14px;
+    margin-bottom: 16px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.18);
+    color: white;
+    font-size: 14px;
+    outline: none;
+    transition: 0.3s;
+}
+
+input::placeholder {
+    color: #e0e0e0;
+}
+
+input:focus,
+select:focus {
+    background: rgba(255, 255, 255, 0.28);
+    transform: scale(1.02);
+}
+
+select option {
+    color: black;
+}
+
+/* FILE INPUT */
+input[type="file"] {
+    background: transparent;
+    padding: 10px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 30px;
+    border: none;
+    background: linear-gradient(135deg, #6a5cff, #8b7bff);
+    color: white;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(106, 92, 255, 0.5);
+}
+
+/* SECONDARY BUTTON */
+.secondary-btn {
+    margin-top: 12px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* =========================
+   ERROR TEXT
+========================= */
+#error {
+    color: #ffb3b3;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+/* =========================
+   WELCOME / HOME PAGE
+========================= */
+.welcome-body {
+    background: linear-gradient(to top, #0a2540, #1e4d8c, #4fa3d1);
+    display: block;
+}
+
+/* NAVBAR */
+.navbar {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 22px 0;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 35px;
+}
+
+.nav-links li {
+    font-size: 14px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    opacity: 0.9;
+}
+
+.nav-links li:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+/* HERO SECTION */
+.hero {
+    text-align: center;
+    margin-top: 140px;
+    padding: 20px;
+}
+
+.hero h1 {
+    font-size: 48px;
+    margin-bottom: 18px;
+    letter-spacing: 2px;
+}
+
+.hero p {
+    max-width: 650px;
+    margin: auto;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+/* HERO BUTTON */
+.hero-btn {
+    margin-top: 30px;
+    padding: 14px 45px;
+    border-radius: 40px;
+    background: white;
+    color: #1e4d8c;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.hero-btn:hover {
+    background: #f0f0f0;
+}
+
+/* =========================
+   FIND COFOUNDER RESULTS
+========================= */
+#results p {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+/* =========================
+   ADMIN PANEL
+========================= */
+#userList div {
+    background: rgba(255, 255, 255, 0.18);
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+
+/* =========================
+   RESPONSIVE DESIGN
+========================= */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .left {
+        text-align: center;
+    }
+
+    .hero h1 {
+        font-size: 34px;
+    }
+}

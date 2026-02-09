@@ -1,24 +1,32 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+import OTP from "./components/OTP";
+import Profile from "./components/Profile";
+import Admin from "./components/Admin";
+import FindCoFounder from "./components/FindCoFounder";
+import Welcome from "./components/Welcome";
 
 function App() {
+  const getUser = () => localStorage.getItem("loggedInUser");
+  const getEmail = () => localStorage.getItem("userEmail");
+  const isAdmin = () => getEmail() === "appadmin@gmail.com";
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={getUser() ? <Navigate to="/welcome" /> : <Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/otp" element={<OTP />} />
+        <Route path="/profile" element={getUser() ? <Profile /> : <Navigate to="/login" />} />
+        <Route path="/find" element={getUser() ? <FindCoFounder /> : <Navigate to="/login" />} />
+        <Route path="/admin" element={isAdmin() ? <Admin /> : <Navigate to="/login" />} />
+        <Route path="/welcome" element={getUser() ? <Welcome /> : <Navigate to="/login" />} />
+      </Routes>
+    </Router>
   );
 }
 
