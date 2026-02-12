@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getProfileAPI, getCurrentUserProfile, logout } from "../utils/api";
+import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts } from "../utils/api";
 import "../css/dashboard.css";
 
 function Welcome() {
@@ -8,10 +8,15 @@ function Welcome() {
   const username = localStorage.getItem("loggedInUser");
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (username) {
+        // First sync the verification status (updates Firestore if verified)
+        await syncEmailVerification();
+
+        // Then fetch the fresh data
         const res = await getCurrentUserProfile();
         if (res.success) {
           setUserData(res.data);
@@ -20,6 +25,20 @@ function Welcome() {
       setLoading(false);
     };
     fetchUserData();
+  }, [username]);
+
+  // Poll for unread messages
+  useEffect(() => {
+    const fetchUnread = async () => {
+      if (username) {
+        const counts = await getUnreadCounts(username);
+        const total = Object.values(counts).reduce((a, b) => a + b, 0);
+        setUnreadCount(total);
+      }
+    };
+    fetchUnread(); // Initial fetch
+    const interval = setInterval(fetchUnread, 5000); // Poll every 5s
+    return () => clearInterval(interval);
   }, [username]);
 
   const handleLogout = async () => {
@@ -58,7 +77,14 @@ function Welcome() {
             <span>🔍</span> Find Partners
           </li>
           <li className="nav-item" onClick={() => navigate("/messages")}>
-            <span>💬</span> Messages
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+              <span>💬 Messages</span>
+              {unreadCount > 0 && (
+                <span style={{ background: "#ef4444", color: "white", fontSize: "0.7rem", padding: "2px 6px", borderRadius: "10px", marginLeft: "8px" }}>
+                  {unreadCount}
+                </span>
+              )}
+            </div>
           </li>
         </ul>
         <div className="nav-item logout-item" onClick={handleLogout}>

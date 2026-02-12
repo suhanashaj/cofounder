@@ -329,3 +329,143 @@ export const verifyOTP = async (username, otp) => {
   // For now, just return success
   return { success: true, msg: "OTP verified (dummy)" };
 };
+
+// SYNC EMAIL VERIFICATION
+export const syncEmailVerification = async () => {
+  try {
+    const user = await ensureAuthReady();
+    if (!user) return { success: false, msg: "No user logged in" };
+
+    await user.reload(); // Force refresh to get latest status
+    if (user.emailVerified) {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, { verified: true });
+      return { success: true, verified: true };
+    }
+    return { success: true, verified: false };
+  } catch (error) {
+    console.error("Sync verification error:", error);
+    return { success: false, msg: error.message };
+  }
+};
+
+// SEND MESSAGE
+export const sendMessage = async (from, to, text) => {
+  try {
+    const user = await ensureAuthReady();
+    if (!user) return { success: false, msg: "User not authenticated" };
+
+    const messagesRef = collection(db, "messages");
+    await addDoc(messagesRef, {
+      from,
+      to,
+      text,
+      read: false,
+      timestamp: serverTimestamp()
+    });
+    return { success: true, msg: "Message sent" };
+  } catch (error) {
+    return { success: false, msg: error.message };
+  }
+};
+
+// GET MESSAGES
+export const getMessages = async (user1, user2) => {
+  try {
+    const user = await ensureAuthReady();
+    if (!user) return [];
+
+    const messagesRef = collection(db, "messages");
+
+    // Query messages: user1 -> user2
+    const q1 = query(
+      messagesRef,
+      where("from", "==", user1),
+      where("to", "==", user2)
+    );
+
+    // Query messages: user2 -> user1
+    const q2 = query(
+      messagesRef,
+      where("from", "==", user2),
+      where("to", "==", user1)
+    );
+
+    const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+
+    let messages = [];
+    snap1.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+    snap2.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+
+    // Sort by timestamp
+    messages.sort((a, b) => {
+      const t1 = a.timestamp ? a.timestamp.seconds : 0;
+      const t2 = b.timestamp ? b.timestamp.seconds : 0;
+      return t1 - t2;
+    });
+
+    return messages;
+  } catch (error) {
+    console.error("Get messages error:", error);
+    return [];
+  }
+};
+
+// GET UNREAD MESSAGES COUNT
+export const getUnreadCounts = async (username) => {
+  try {
+    const user = await ensureAuthReady();
+    if (!user) return {};
+
+    const messagesRef = collection(db, "messages");
+    // Get all unread messages sent TO the current user
+    const q = query(
+      messagesRef,
+      where("to", "==", username),
+      where("read", "==", false)
+    );
+
+    const snapshot = await getDocs(q);
+    const counts = {};
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const sender = data.from;
+      counts[sender] = (counts[sender] || 0) + 1;
+    });
+
+    return counts;
+  } catch (error) {
+    console.error("Get unread counts error:", error);
+    return {};
+  }
+};
+
+// MARK MESSAGES AS READ
+export const markMessagesAsRead = async (recipient, sender) => {
+  try {
+    await ensureAuthReady();
+    const messagesRef = collection(db, "messages");
+
+    // Find unread messages from 'sender' to 'recipient'
+    const q = query(
+      messagesRef,
+      where("to", "==", recipient),
+      where("from", "==", sender),
+      where("read", "==", false)
+    );
+
+    const snapshot = await getDocs(q);
+
+    // Update each document
+    const updatePromises = snapshot.docs.map(docSnap =>
+      updateDoc(doc(db, "messages", docSnap.id), { read: true })
+    );
+
+    await Promise.all(updatePromises);
+    return { success: true };
+  } catch (error) {
+    console.error("Mark read error:", error);
+    return { success: false, msg: error.message };
+  }
+};

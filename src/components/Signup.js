@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signup } from "../utils/api";
+import { auth } from "../firebase";
 
 function Signup() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user");
+  const [role, setRole] = useState("Founder");
   const [error, setError] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async () => {
@@ -15,8 +17,7 @@ function Signup() {
       const res = await signup(username, email, password, role);
       console.log("Signup API response:", res);
       if (res.success) {
-        alert("Signup successful. Please login.");
-        navigate("/login");
+        setVerificationSent(true);
       } else {
         setError(res.msg || "Signup failed");
         alert(res.msg || "Signup failed");
@@ -27,6 +28,39 @@ function Signup() {
       alert(err.message || "Signup error");
     }
   };
+
+  useEffect(() => {
+    let interval;
+    if (verificationSent) {
+      interval = setInterval(async () => {
+        if (auth.currentUser) {
+          await auth.currentUser.reload();
+          if (auth.currentUser.emailVerified) {
+            clearInterval(interval);
+            alert("Email verified! Redirecting to login.");
+            navigate("/login");
+          }
+        }
+      }, 3000); // Check every 3 seconds
+    }
+    return () => clearInterval(interval);
+  }, [verificationSent, navigate]);
+
+  if (verificationSent) {
+    return (
+      <div className="container" style={{ textAlign: "center", flexDirection: "column", padding: "40px" }}>
+        <h2>Check your inbox!</h2>
+        <p>We have sent a verification email to <strong>{email}</strong>.</p>
+        <p>Please click the link in the email to verify your account.</p>
+        <p>Once verified, you will be redirected to the login page automatically.</p>
+        <div style={{ marginTop: "20px" }}>
+          <button className="secondary-btn" onClick={() => navigate("/login")}>
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
@@ -66,7 +100,6 @@ function Signup() {
             onChange={e => setRole(e.target.value)}
             style={{ width: "100%", padding: "10px", margin: "10px 0", borderRadius: "5px", border: "1px solid #ddd" }}
           >
-            <option value="user">User (Default)</option>
             <option value="Founder">Founder</option>
             <option value="Cofounder">Cofounder</option>
           </select>
