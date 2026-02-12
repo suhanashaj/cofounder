@@ -20,20 +20,35 @@ function Login() {
     setShowResend(false);
 
     try {
+      console.log("Login: Starting login for", email);
       const data = await login(email, password);
+
       if (!data.success) {
+        console.error("Login: Failed", data.msg);
         setError(data.msg || "Login failed");
         if (data.msg && data.msg.includes("verify your email")) {
           setShowResend(true);
         }
+        setLoading(false); // Only reset loading on failure
       } else {
+        console.log("Login: Success, setting storage and navigating...");
         localStorage.setItem("loggedInUser", data.username || email);
         localStorage.setItem("userEmail", email);
-        email === "appadmin@gmail.com" ? navigate("/admin") : navigate("/welcome");
+        localStorage.setItem("userRole", data.role || "user");
+
+        const normalizedEmail = email.toLowerCase();
+        const isAdmin = data.role === "admin" || normalizedEmail === "appadmin@gmail.com" || normalizedEmail === "admin@example.com";
+
+        const target = isAdmin ? "/admin" : "/welcome";
+        console.log("Login: Success! Hard redirecting to", target);
+
+        // Using window.location.href forces a clean react state load
+        // which is the most reliable way to avoid 'lag' in redirection logic
+        window.location.href = target;
       }
     } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
+      console.error("Login: Unexpected error", err);
+      setError("An unexpected error occurred: " + err.message);
       setLoading(false);
     }
   };
@@ -51,26 +66,44 @@ function Login() {
       </div>
       <div className="right">
         <h2>Login</h2>
-        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-        {error && (
-          <div style={{ margin: "10px 0" }}>
-            <p style={{ color: "#ffb3b3", fontSize: "0.9rem" }}>{error}</p>
-            {showResend && (
-              <button
-                onClick={handleResend}
-                className="text-link"
-                style={{ background: "none", border: "none", color: "#4CAF50", textDecoration: "underline", cursor: "pointer", padding: "0", fontSize: "0.85rem", marginTop: "5px" }}
-              >
-                Resend verification link
-              </button>
-            )}
-          </div>
-        )}
-        <button onClick={handleLogin} disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </button>
-        <button className="secondary-btn" onClick={() => navigate("/signup")} disabled={loading}>Signup</button>
+        <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} autoComplete="on">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            autoComplete="email"
+            name="email"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            autoComplete="new-password"
+            name="password-input-field"
+          />
+          {error && (
+            <div style={{ margin: "10px 0" }}>
+              <p style={{ color: "#ffb3b3", fontSize: "0.9rem" }}>{error}</p>
+              {showResend && (
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  className="text-link"
+                  style={{ background: "none", border: "none", color: "#4CAF50", textDecoration: "underline", cursor: "pointer", padding: "0", fontSize: "0.85rem", marginTop: "5px" }}
+                >
+                  Resend verification link
+                </button>
+              )}
+            </div>
+          )}
+          <button type="submit" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
+          </button>
+        </form>
+        <button className="secondary-btn" onClick={() => navigate("/signup")} disabled={loading} style={{ width: "100%", marginTop: "10px" }}>Signup</button>
+        <button className="text-link" onClick={() => navigate("/")} style={{ width: "100%", marginTop: "15px", background: "none", border: "none", color: "var(--primary)", cursor: "pointer", fontSize: "0.9rem" }}>← Back to Home</button>
       </div>
     </div>
   );
