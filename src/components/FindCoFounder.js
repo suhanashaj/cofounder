@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, sendConnectionRequest, getConnectionRequests, getProfileAPI, logout } from "../utils/api";
+import { getUsers, sendConnectionRequest, getConnectionRequests, getProfileAPI, getCurrentUserProfile, logout } from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import "../css/dashboard.css";
 
@@ -20,7 +20,7 @@ function FindCoFounder() {
       const [allUsers, connections, profile] = await Promise.all([
         getUsers(),
         getConnectionRequests(username),
-        getProfileAPI(username)
+        getCurrentUserProfile()
       ]);
       setUsers(allUsers);
       setMyConnections(connections);

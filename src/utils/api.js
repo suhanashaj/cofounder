@@ -1,15 +1,34 @@
 import { auth, db, storage } from "../firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc, getDocs, collection, updateDoc, query, where, addDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
+// HELPER: Wait for Auth to likely be ready
+const ensureAuthReady = () => {
+  return new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+};
+
 // SIGNUP
-export const signup = async (username, email, password) => {
+export const signup = async (username, email, password, role = "user") => {
   try {
     const trimmedEmail = email.trim();
     const res = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
     console.log("Auth signup response:", res);
     const uid = res.user && res.user.uid;
+
+    // Send Verification Email
+    try {
+      await sendEmailVerification(res.user);
+      console.log("Verification email sent.");
+    } catch (emailErr) {
+      console.error("Error sending verification email:", emailErr);
+      // Continue flow, but log error
+    }
 
     // save user data in Firestore (catch Firestore-specific errors separately)
     try {
@@ -17,9 +36,9 @@ export const signup = async (username, email, password) => {
       await setDoc(doc(db, "users", uid), {
         username,
         email: trimmedEmail,
-        verified: true,
+        verified: false, // Explicitly false until verified
         certificateApproved: false,
-        role: "user",
+        role: role,
         skills: "",
         domain: "",
         experience: "",
@@ -44,6 +63,10 @@ export const login = async (email, password) => {
     console.log("Auth: Attempting login for", email);
     const trimmedEmail = email.trim();
     const res = await signInWithEmailAndPassword(auth, trimmedEmail, password);
+
+    // Wait for auth state to settle (though signIn usually sets it immediately, good practice)
+    await ensureAuthReady();
+
     const uid = res.user.uid;
     console.log("Auth: Login successful, UID:", uid);
 
@@ -89,6 +112,7 @@ export const logout = async () => {
 // RESEND VERIFICATION
 export const resendVerification = async () => {
   try {
+    await ensureAuthReady();
     if (auth.currentUser) {
       await sendEmailVerification(auth.currentUser);
       return { success: true, msg: "Verification email sent!" };
@@ -99,9 +123,12 @@ export const resendVerification = async () => {
   }
 };
 
-// GET PROFILE
+// GET PROFILE (Public/Other Users)
 export const getProfileAPI = async (username) => {
   try {
+    const user = await ensureAuthReady();
+    if (!user) return { success: false, msg: "User not authenticated" };
+
     const usersRef = collection(db, "users");
     const q = query(usersRef, where("username", "==", username));
     const querySnapshot = await getDocs(q);
@@ -115,9 +142,34 @@ export const getProfileAPI = async (username) => {
   }
 };
 
+// GET CURRENT USER PROFILE (Private/Self)
+export const getCurrentUserProfile = async () => {
+  try {
+    const user = await ensureAuthReady();
+    if (!user) return { success: false, msg: "No user logged in" };
+
+    const userDocRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userDocRef);
+
+    if (userSnap.exists()) {
+      return { success: true, data: userSnap.data() };
+    } else {
+      return { success: false, msg: "Profile document does not exist" };
+    }
+  } catch (error) {
+    console.error("Error getting current profile:", error);
+    return { success: false, msg: error.message };
+  }
+};
+
 // SAVE PROFILE
 export const saveProfileAPI = async (username, profileData) => {
   try {
+    const user = await ensureAuthReady();
+    if (!user) return { success: false, msg: "You must be logged in to save." };
+
+    const uid = user.uid;
+
     let certificateUrl = profileData.certificateUrl || "";
     if (profileData.certificate && typeof profileData.certificate !== "string") {
       const storageRef = ref(storage, `certificates/${username}_${Date.now()}`);
@@ -132,22 +184,22 @@ export const saveProfileAPI = async (username, profileData) => {
       profilePicUrl = await getDownloadURL(res.ref);
     }
 
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("username", "==", username));
-    const querySnapshot = await getDocs(q);
+    // Direct reference using authenticated UID - Safe & Secure
+    const userRef = doc(db, "users", uid);
 
-    if (!querySnapshot.empty) {
-      const userRef = doc(db, "users", querySnapshot.docs[0].id);
-      // Remove file objects before saving to Firestore
-      const { certificate, profilePic, ...dataToSave } = profileData;
-      await updateDoc(userRef, {
-        ...dataToSave,
-        certificateUrl,
-        profilePicUrl
-      });
-      return { success: true, msg: "Profile saved" };
-    }
-    return { success: false, msg: "User not found" };
+    // Remove file objects before saving to Firestore
+    const { certificate, profilePic, ...dataToSave } = profileData;
+
+    // Use setDoc with merge: true to ensure it works even if doc is missing/partial
+    await setDoc(userRef, {
+      ...dataToSave,
+      certificateUrl,
+      profilePicUrl,
+      username: username // Ensure username is kept/updated
+    }, { merge: true });
+
+    return { success: true, msg: "Profile saved" };
+
   } catch (err) {
     console.error("Save profile error:", err);
     return { success: false, msg: err.message };
@@ -157,6 +209,9 @@ export const saveProfileAPI = async (username, profileData) => {
 // GET USERS
 export const getUsers = async () => {
   try {
+    const user = await ensureAuthReady();
+    if (!user) return [];
+
     const usersRef = collection(db, "users");
     const snapshot = await getDocs(usersRef);
     let users = [];
@@ -171,6 +226,9 @@ export const getUsers = async () => {
 // SEND CONNECTION REQUEST
 export const sendConnectionRequest = async (from, to) => {
   try {
+    const user = await ensureAuthReady();
+    if (!user) return { success: false, msg: "User not authenticated" };
+
     const connectionsRef = collection(db, "connections");
 
     // Check if request already exists
@@ -198,6 +256,9 @@ export const sendConnectionRequest = async (from, to) => {
 // GET CONNECTION REQUESTS
 export const getConnectionRequests = async (username) => {
   try {
+    const user = await ensureAuthReady();
+    if (!user) return [];
+
     const connectionsRef = collection(db, "connections");
 
     // Firestore doesn't support logical OR directly in where clauses easily without 'or' query type (Firebase v10.4+)
@@ -222,6 +283,9 @@ export const getConnectionRequests = async (username) => {
 // GET ALL CONNECTIONS (for Admin)
 export const getAllConnections = async () => {
   try {
+    const user = await ensureAuthReady();
+    if (!user) return [];
+
     const connectionsRef = collection(db, "connections");
     const snapshot = await getDocs(connectionsRef);
     let connections = [];
@@ -236,6 +300,7 @@ export const getAllConnections = async () => {
 // UPDATE CONNECTION STATUS
 export const updateConnectionStatus = async (id, status) => {
   try {
+    await ensureAuthReady();
     const connRef = doc(db, "connections", id);
     await updateDoc(connRef, { status });
     return { success: true, msg: `Request ${status}` };
@@ -246,6 +311,7 @@ export const updateConnectionStatus = async (id, status) => {
 
 // APPROVE CERTIFICATE
 export const approveUserAPI = async (username) => {
+  await ensureAuthReady();
   const usersRef = collection(db, "users");
   const q = query(usersRef, where("username", "==", username));
   const snapshot = await getDocs(q);

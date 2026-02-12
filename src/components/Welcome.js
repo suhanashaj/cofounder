@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getProfileAPI, logout } from "../utils/api";
+import { getProfileAPI, getCurrentUserProfile, logout } from "../utils/api";
 import "../css/dashboard.css";
 
 function Welcome() {
@@ -12,7 +12,7 @@ function Welcome() {
   useEffect(() => {
     const fetchUserData = async () => {
       if (username) {
-        const res = await getProfileAPI(username);
+        const res = await getCurrentUserProfile();
         if (res.success) {
           setUserData(res.data);
         }

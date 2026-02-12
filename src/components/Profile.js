@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { saveProfileAPI, getProfileAPI, logout } from "../utils/api";
+import { saveProfileAPI, getProfileAPI, getCurrentUserProfile, logout } from "../utils/api";
 import { useNavigate } from "react-router-dom";
 
 function Profile() {
@@ -29,21 +29,22 @@ function Profile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (username) {
-        const res = await getProfileAPI(username);
-        if (res.success) {
-          setProfile(prev => ({
-            ...prev,
-            ...res.data,
-            // Keep local base64 previews if they exist
-            certificate: prev.certificate,
-            profilePic: prev.profilePic
-          }));
-        }
+      // Fetch using UID directly (more reliable)
+      const res = await getCurrentUserProfile();
+      if (res.success) {
+        setProfile(prev => ({
+          ...prev,
+          ...res.data,
+          // Keep local base64 previews if they exist
+          certificate: prev.certificate,
+          profilePic: prev.profilePic
+        }));
+      } else {
+        console.warn("Could not fetch profile:", res.msg);
       }
     };
     fetchProfile();
-  }, [username]);
+  }, [username]); // Keep username dep to re-trigger if it changes, though strictly not needed for the fetch itself
 
   const handleChange = (e) => {
     const { name, value } = e.target;

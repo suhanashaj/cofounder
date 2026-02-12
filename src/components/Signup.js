@@ -6,12 +6,13 @@ function Signup() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("user");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSignup = async () => {
     try {
-      const res = await signup(username, email, password);
+      const res = await signup(username, email, password, role);
       console.log("Signup API response:", res);
       if (res.success) {
         alert("Signup successful. Please login.");
@@ -60,6 +61,15 @@ function Signup() {
             name="new-password"
             autoComplete="new-password"
           />
+          <select
+            value={role}
+            onChange={e => setRole(e.target.value)}
+            style={{ width: "100%", padding: "10px", margin: "10px 0", borderRadius: "5px", border: "1px solid #ddd" }}
+          >
+            <option value="user">User (Default)</option>
+            <option value="Founder">Founder</option>
+            <option value="Cofounder">Cofounder</option>
+          </select>
           <p style={{ color: "#ffb3b3" }}>{error}</p>
           <button type="submit">Signup</button>
         </form>
