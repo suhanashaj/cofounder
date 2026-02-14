@@ -25,26 +25,33 @@ function Profile() {
     about: "",
   });
 
+  const professionalAvatars = [
+    "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop",
+    "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
+    "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop",
+    "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
+    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
+    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop"
+  ];
+
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      // Fetch using UID directly (more reliable)
       const res = await getCurrentUserProfile();
       if (res.success) {
         setProfile(prev => ({
           ...prev,
           ...res.data,
-          // Keep local base64 previews if they exist
           certificate: prev.certificate,
           profilePic: prev.profilePic
         }));
-      } else {
-        console.warn("Could not fetch profile:", res.msg);
       }
+      setInitialLoading(false);
     };
     fetchProfile();
-  }, [username]); // Keep username dep to re-trigger if it changes, though strictly not needed for the fetch itself
+  }, [username]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,10 +63,14 @@ function Profile() {
     if (file) {
       const reader = new FileReader();
       reader.onload = () => {
-        setProfile((prev) => ({ ...prev, [field]: reader.result }));
+        setProfile((prev) => ({ ...prev, [field]: reader.result, profilePicUrl: "" }));
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const selectAvatar = (url) => {
+    setProfile(prev => ({ ...prev, profilePic: null, profilePicUrl: url }));
   };
 
   const handleSave = async () => {
@@ -77,6 +88,29 @@ function Profile() {
       setLoading(false);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        width: "100vw",
+        background: "var(--primary-bg)",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        zIndex: 9999,
+        overflow: "hidden"
+      }}>
+        <div className="loader-aura"></div>
+        <p style={{ fontSize: "1.2rem", color: "var(--accent-color)", fontWeight: "800", letterSpacing: "4px", zIndex: 10, animation: "pulse 2s infinite", textAlign: "center", padding: "0 20px" }}>
+          PREPARING PROFILE CORE...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-page-wrapper">
@@ -118,22 +152,31 @@ function Profile() {
           {/* Left: Avatar and Certificate */}
           <div className="profile-left-col">
             <div className="profile-card profile-sidebar-card">
-              <div className="profile-avatar-container">
+              <div className="profile-avatar-container" style={{ position: "relative" }}>
                 <img
-                  src={profile.profilePic || profile.profilePicUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + username}
+                  src={profile.profilePic || profile.profilePicUrl || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
                   className="profile-avatar-img"
                   alt="Avatar"
                 />
-                <label className="avatar-edit-icon" htmlFor="profilePicInput">
-                  📷
-                </label>
-                <input
-                  id="profilePicInput"
-                  type="file"
-                  onChange={(e) => handleFileChange(e, "profilePic")}
-                  style={{ display: "none" }}
-                  accept="image/*"
-                />
+                {/* Show AVATAR watermark if using pre-selected avatar */}
+                {profile.profilePicUrl && professionalAvatars.includes(profile.profilePicUrl) && (
+                  <div style={{
+                    position: "absolute",
+                    bottom: "8px",
+                    right: "8px",
+                    background: "rgba(0, 0, 0, 0.75)",
+                    color: "white",
+                    padding: "4px 10px",
+                    borderRadius: "6px",
+                    fontSize: "0.65rem",
+                    fontWeight: "800",
+                    letterSpacing: "1px",
+                    backdropFilter: "blur(4px)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)"
+                  }}>
+                    AVATAR
+                  </div>
+                )}
               </div>
               <h3>{profile.fullName || username}</h3>
               <p style={{ color: "var(--text-muted)", marginBottom: "15px" }}>{profile.role || "Founder"}</p>
@@ -143,7 +186,72 @@ function Profile() {
               </div>
 
               <div style={{ marginTop: "30px", width: "100%" }}>
-                <h4 style={{ fontSize: "0.9rem", marginBottom: "10px", textAlign: "left" }}>Documents</h4>
+                <h4 style={{ fontSize: "0.8rem", color: "var(--accent-color)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "15px", textAlign: "left" }}>Professional Avatars</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "20px" }}>
+                  {professionalAvatars.map((url, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => selectAvatar(url)}
+                      style={{
+                        width: "100%",
+                        paddingBottom: "100%",
+                        borderRadius: "12px",
+                        backgroundImage: `url(${url})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        cursor: "pointer",
+                        border: profile.profilePicUrl === url ? "3px solid var(--accent-color)" : "2px solid transparent",
+                        boxShadow: profile.profilePicUrl === url ? "0 0 15px var(--accent-glow)" : "none",
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        transform: profile.profilePicUrl === url ? "scale(0.95)" : "none",
+                        opacity: profile.profilePicUrl === url ? 1 : 0.6
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.transform = "scale(1.05)"; }}
+                      onMouseLeave={(e) => { if (profile.profilePicUrl !== url) { e.currentTarget.style.opacity = 0.6; e.currentTarget.style.transform = "none"; } }}
+                    />
+                  ))}
+                </div>
+
+                {/* Upload Your Own Photo Option */}
+                <label
+                  htmlFor="customProfilePicInput"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "12px 20px",
+                    background: "linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1))",
+                    border: "2px dashed var(--accent-color)",
+                    borderRadius: "12px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "all 0.3s",
+                    marginBottom: "20px",
+                    fontWeight: "700",
+                    fontSize: "0.85rem",
+                    color: "var(--accent-color)",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))";
+                    e.currentTarget.style.transform = "scale(1.02)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1))";
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
+                >
+                  📷 Upload Your Photo
+                  <input
+                    id="customProfilePicInput"
+                    type="file"
+                    onChange={(e) => handleFileChange(e, "profilePic")}
+                    style={{ display: "none" }}
+                    accept="image/*"
+                  />
+                </label>
+
+                <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "10px", textAlign: "left" }}>Documents</h4>
                 <label className="file-upload-label" style={{ width: "100%", textAlign: "center" }}>
                   Upload Certificate
                   <input type="file" onChange={(e) => handleFileChange(e, "certificate")} style={{ display: "none" }} />

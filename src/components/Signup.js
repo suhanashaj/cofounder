@@ -48,15 +48,23 @@ function Signup() {
 
   if (verificationSent) {
     return (
-      <div className="container" style={{ textAlign: "center", flexDirection: "column", padding: "40px" }}>
-        <h2>Check your inbox!</h2>
-        <p>We have sent a verification email to <strong>{email}</strong>.</p>
-        <p>Please click the link in the email to verify your account.</p>
-        <p>Once verified, you will be redirected to the login page automatically.</p>
-        <div style={{ marginTop: "20px" }}>
-          <button className="secondary-btn" onClick={() => navigate("/login")}>
-            Go to Login
-          </button>
+      <div className="dashboard-wrapper" style={{ justifyContent: "center", alignItems: "center", padding: "40px" }}>
+        <div className="stat-card" style={{ maxWidth: "600px", textAlign: "center", padding: "60px 40px" }}>
+          <div style={{ fontSize: "4rem", marginBottom: "32px", animation: "pulse 2s infinite" }}>📧</div>
+          <h2 style={{ fontSize: "2rem", fontWeight: "900", color: "white", marginBottom: "16px" }}>Verify Your Vision</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "1.1rem", lineHeight: "1.6" }}>
+            We have sent a verification secure link to <strong style={{ color: "white" }}>{email}</strong>.
+          </p>
+          <div style={{ marginTop: "40px", padding: "24px", background: "rgba(99, 102, 241, 0.05)", borderRadius: "20px", border: "1px solid var(--border-glass)" }}>
+            <p style={{ margin: 0, color: "var(--accent-color)", fontWeight: "600", fontSize: "0.9rem" }}>
+              Awaiting confirmation from your mail server...
+            </p>
+          </div>
+          <div style={{ marginTop: "40px" }}>
+            <button className="secondary-btn" onClick={() => navigate("/login")}>
+              RETURN TO LOGIN
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -65,8 +73,17 @@ function Signup() {
   return (
     <div className="container">
       <div className="left">
-        <h2>Join Us Today,</h2>
-        <p>Create your account and start your journey.</p>
+        <div className="auth-image-container">
+          <img
+            src="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=800"
+            alt="Startup Team"
+            className="auth-image"
+          />
+          <div className="auth-overlay">
+            <h2>Join Us Today,</h2>
+            <p>Create your account and start your journey.</p>
+          </div>
+        </div>
       </div>
       <div className="right">
         <h2>Signup</h2>

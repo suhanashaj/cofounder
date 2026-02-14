@@ -55,8 +55,23 @@ function Welcome() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#f8faff" }}>
-        <p style={{ fontSize: "1.2rem", color: "#6366f1" }}>Loading your dashboard...</p>
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        width: "100vw",
+        background: "var(--primary-bg)",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        zIndex: 9999,
+        overflow: "hidden"
+      }}>
+        <div className="loader-aura"></div>
+        <p style={{ fontSize: "1.2rem", color: "var(--accent-color)", fontWeight: "800", letterSpacing: "4px", zIndex: 10, animation: "pulse 2s infinite", textAlign: "center", padding: "0 20px" }}>
+          INITIALIZING SECURE DASHBOARD...
+        </p>
       </div>
     );
   }
@@ -140,19 +155,19 @@ function Welcome() {
         </div>
 
         {/* Progress Tracker */}
-        <div className="progress-section">
-          <div className="progress-header">
-            <h3>Profile Completion</h3>
-            <span>{calculateCompletion()}%</span>
+        <div className="stat-card" style={{ marginTop: "24px", padding: "32px", borderRadius: "32px" }}>
+          <div className="progress-header" style={{ marginBottom: "20px" }}>
+            <h3 style={{ fontSize: "1.25rem", margin: 0, color: "white" }}>Profile Completion</h3>
+            <span style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--accent-color)" }}>{calculateCompletion()}%</span>
           </div>
-          <div className="progress-bar-container">
+          <div className="progress-bar-container" style={{ height: "12px", background: "rgba(255, 255, 255, 0.05)", borderRadius: "10px", overflow: "hidden" }}>
             <div
               className="progress-bar-fill"
-              style={{ width: `${calculateCompletion()}%` }}
+              style={{ width: `${calculateCompletion()}%`, height: "100%", background: "linear-gradient(90deg, #6366f1, #a855f7)", borderRadius: "10px" }}
             ></div>
           </div>
-          <p style={{ marginTop: "15px", fontSize: "0.875rem", color: "#64748b" }}>
-            Tip: Add your WhatsApp and LinkedIn to make it easier for partners to reach out.
+          <p style={{ marginTop: "20px", fontSize: "0.9rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+            Tip: A complete profile gets 3x more interests. Add your vision to stand out!
           </p>
         </div>
       </main>

@@ -35,7 +35,7 @@ function App() {
 
         {/* Protected Regular User Routes */}
         <Route path="/profile" element={getUser() ? <Profile /> : <Navigate to="/login" />} />
-        <Route path="/find" element={getUser() ? <FindCoFounder /> : <Navigate to="/login" />} />
+        <Route path="/find" element={<FindCoFounder />} />
         <Route path="/welcome" element={getUser() ? <Welcome /> : <Navigate to="/login" />} />
         <Route path="/messages" element={getUser() ? <Messages /> : <Navigate to="/login" />} />
 

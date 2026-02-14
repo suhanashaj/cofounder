@@ -10,6 +10,16 @@ function Admin() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("analytics");
 
+    // Professional avatar URLs to check for watermark
+    const professionalAvatars = [
+        "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop"
+    ];
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -135,11 +145,32 @@ function Admin() {
                                         <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
                                             <td style={{ padding: "20px 30px" }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                                    <img
-                                                        src={user.profilePicUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                                                        alt="Avatar"
-                                                        style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
-                                                    />
+                                                    <div style={{ position: "relative" }}>
+                                                        <img
+                                                            src={user.profilePicUrl || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true`}
+                                                            alt="Avatar"
+                                                            style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
+                                                        />
+                                                        {/* AVATAR watermark for pre-selected avatars */}
+                                                        {user.profilePicUrl && professionalAvatars.includes(user.profilePicUrl) && (
+                                                            <div style={{
+                                                                position: "absolute",
+                                                                top: "2px",
+                                                                left: "2px",
+                                                                background: "rgba(0, 0, 0, 0.75)",
+                                                                color: "white",
+                                                                padding: "1px 4px",
+                                                                borderRadius: "3px",
+                                                                fontSize: "0.45rem",
+                                                                fontWeight: "800",
+                                                                letterSpacing: "0.3px",
+                                                                backdropFilter: "blur(4px)",
+                                                                border: "1px solid rgba(255, 255, 255, 0.2)"
+                                                            }}>
+                                                                AVATAR
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div>
                                                         <strong>{user.username}</strong>
                                                         <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>{user.email}</p>

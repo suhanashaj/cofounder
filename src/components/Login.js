@@ -58,11 +58,48 @@ function Login() {
     alert(res.msg);
   };
 
+  if (loading) {
+    return (
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        width: "100vw",
+        background: "#020617",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        zIndex: 9999,
+        overflow: "hidden"
+      }}>
+        <div className="loader-aura"></div>
+        <div style={{ zIndex: 10, textAlign: "center", padding: "0 20px" }}>
+          <p style={{ fontSize: "1.2rem", color: "var(--accent-color)", fontWeight: "800", letterSpacing: "6px", animation: "pulse 2s infinite", margin: 0 }}>
+            AUTHENTICATING
+          </p>
+          <p style={{ fontSize: "0.8rem", color: "rgba(255, 255, 255, 0.4)", marginTop: "12px", letterSpacing: "2px" }}>
+            ESTABLISHING SECURE SESSION
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <div className="left">
-        <h2>Welcome Back</h2>
-        <p>Login to continue your journey.</p>
+        <div className="auth-image-container">
+          <img
+            src="https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&q=80&w=800"
+            alt="Business Meeting"
+            className="auth-image"
+          />
+          <div className="auth-overlay">
+            <h2>Welcome Back</h2>
+            <p>Login to continue your journey.</p>
+          </div>
+        </div>
       </div>
       <div className="right">
         <h2>Login</h2>
