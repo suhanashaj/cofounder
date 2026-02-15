@@ -32,9 +32,9 @@ function Login() {
         setLoading(false); // Only reset loading on failure
       } else {
         console.log("Login: Success, setting storage and navigating...");
-        localStorage.setItem("loggedInUser", data.username || email);
-        localStorage.setItem("userEmail", email);
-        localStorage.setItem("userRole", data.role || "user");
+        sessionStorage.setItem("loggedInUser", data.username || email);
+        sessionStorage.setItem("userEmail", email);
+        sessionStorage.setItem("userRole", data.role || "user");
 
         const normalizedEmail = email.toLowerCase();
         const isAdmin = data.role === "admin" || normalizedEmail === "appadmin@gmail.com" || normalizedEmail === "admin@example.com";

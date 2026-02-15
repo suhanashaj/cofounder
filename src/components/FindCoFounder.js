@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, sendConnectionRequest, getConnectionRequests, getProfileAPI, getCurrentUserProfile, logout } from "../utils/api";
+import { getUsers, sendConnectionRequest, getConnectionRequests, getCurrentUserProfile } from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import "../css/dashboard.css";
 
 function FindCoFounder() {
   const navigate = useNavigate();
-  const username = localStorage.getItem("loggedInUser");
+  const username = sessionStorage.getItem("loggedInUser");
 
   const [users, setUsers] = useState([]);
   const [results, setResults] = useState([]);
   const [myConnections, setMyConnections] = useState([]);
-  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ skill: "", domain: "" });
 
@@ -28,14 +27,13 @@ function FindCoFounder() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [allUsers, connections, profile] = await Promise.all([
+        const [allUsers, connections] = await Promise.all([
           getUsers(),
           getConnectionRequests(username),
           getCurrentUserProfile()
         ]);
         setUsers(allUsers);
         setMyConnections(connections);
-        if (profile.success) setUserData(profile.data);
 
         // Initial results: show all verified/approved users except self
         const initialMatches = allUsers.filter(u => u.username !== username && u.verified && u.certificateApproved);
@@ -93,9 +91,6 @@ function FindCoFounder() {
     const conn = myConnections.find(c => c.to === targetUser || c.from === targetUser);
     return conn ? conn.status : null;
   };
-
-  const acceptedCount = myConnections.filter(c => c.status === "accepted").length;
-  const pendingCount = myConnections.filter(c => c.from === username && c.status === "pending").length;
 
   if (loading) {
     return (

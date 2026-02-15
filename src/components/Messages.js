@@ -5,7 +5,7 @@ import "../css/dashboard.css";
 
 function Messages() {
     const navigate = useNavigate();
-    const username = localStorage.getItem("loggedInUser");
+    const username = sessionStorage.getItem("loggedInUser");
     const [connections, setConnections] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
     const [chatMessages, setChatMessages] = useState([]);

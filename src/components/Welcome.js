@@ -1,28 +1,31 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts } from "../utils/api";
+import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts, getConnectionCount } from "../utils/api";
 import "../css/dashboard.css";
 
 function Welcome() {
   const navigate = useNavigate();
-  const username = localStorage.getItem("loggedInUser");
+  const username = sessionStorage.getItem("loggedInUser");
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [connectionCount, setConnectionCount] = useState(0);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (username) {
         try {
           // Parallel execution for faster loading
-          const [syncResult, profileResult] = await Promise.all([
+          const [, profileResult, countResult] = await Promise.all([
             syncEmailVerification(),
-            getCurrentUserProfile()
+            getCurrentUserProfile(),
+            getConnectionCount(username)
           ]);
 
           if (profileResult.success) {
             setUserData(profileResult.data);
           }
+          setConnectionCount(countResult);
         } catch (error) {
           console.error("Error fetching user data:", error);
         }
@@ -157,7 +160,7 @@ function Welcome() {
             <div className="stat-header">
               <div className="stat-icon" style={{ backgroundColor: "rgba(245, 158, 11, 0.1)", color: "#f59e0b" }}>🤝</div>
             </div>
-            <div className="stat-value">0</div>
+            <div className="stat-value">{connectionCount}</div>
             <div className="stat-label">Connections Made</div>
           </div>
         </section>

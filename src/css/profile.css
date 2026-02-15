@@ -154,8 +154,9 @@
 }
 
 .form-group input[readonly] {
-    background-color: #f8fafc;
+    background-color: rgba(255, 255, 255, 0.1);
     cursor: not-allowed;
+    color: var(--text-muted);
 }
 
 .full-width {

@@ -159,12 +159,14 @@
 
 .user-badge {
   background: white;
+  color: var(--primary-bg);
   padding: 8px 16px;
   border-radius: 30px;
   display: flex;
   align-items: center;
   gap: 10px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  font-weight: 600;
 }
 
 .badge-dot {
@@ -300,10 +302,13 @@
 
 /* Profile Progress */
 .progress-section {
-  background: white;
+  background: var(--card-bg);
+  backdrop-filter: var(--premium-blur);
+  -webkit-backdrop-filter: var(--premium-blur);
   padding: 30px;
   border-radius: 20px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-glass);
 }
 
 .progress-header {

@@ -13,12 +13,12 @@ import Welcome from "./components/Welcome";
 import Messages from "./components/Messages";
 
 function App() {
-  const getUser = () => localStorage.getItem("loggedInUser");
-  const getEmail = () => localStorage.getItem("userEmail");
+  const getUser = () => sessionStorage.getItem("loggedInUser");
+  const getEmail = () => sessionStorage.getItem("userEmail");
   const isAdmin = () => {
     const user = getUser();
     const email = getEmail()?.toLowerCase();
-    const role = localStorage.getItem("userRole");
+    const role = sessionStorage.getItem("userRole");
     const adminEmails = ["appadmin@gmail.com", "admin@example.com"];
     return user && (adminEmails.includes(email) || role === "admin");
   };

@@ -5,7 +5,7 @@ export default function OTP() {
   const [otp, setOtp] = useState("");
 
   const handleVerify = async () => {
-    const username = localStorage.getItem("signupUser");
+    const username = sessionStorage.getItem("signupUser");
     const res = await verifyOTP(username, otp);
     if (res.success) {
       alert(res.msg);

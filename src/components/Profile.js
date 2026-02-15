@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { saveProfileAPI, getProfileAPI, getCurrentUserProfile, logout } from "../utils/api";
+import { saveProfileAPI, getCurrentUserProfile, logout, changePasswordAPI } from "../utils/api";
 import { useNavigate } from "react-router-dom";
 
 function Profile() {
   const navigate = useNavigate();
-  const username = localStorage.getItem("loggedInUser");
+  const username = sessionStorage.getItem("loggedInUser");
 
   const [profile, setProfile] = useState({
     skills: "",
@@ -84,6 +84,29 @@ function Profile() {
 
   const selectAvatar = (url) => {
     setProfile(prev => ({ ...prev, profilePic: null, profilePicUrl: url }));
+  };
+
+  const [passwordData, setPasswordData] = useState({ current: "", new: "" });
+
+  const handlePasswordUpdate = async () => {
+    if (!passwordData.current || !passwordData.new) {
+      alert("Please enter current and new password");
+      return;
+    }
+
+    // Set loading for feedback
+    setLoading(true);
+    try {
+      const res = await changePasswordAPI(passwordData.current, passwordData.new);
+      alert(res.msg);
+      if (res.success) {
+        setPasswordData({ current: "", new: "" });
+      }
+    } catch (err) {
+      alert("Error updating password: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -279,9 +302,20 @@ function Profile() {
               <h4 style={{ marginBottom: "15px" }}>Security</h4>
               <div className="form-group">
                 <label>Change Password</label>
-                <input type="password" placeholder="Current Password" style={{ marginBottom: "10px" }} />
-                <input type="password" placeholder="New Password" />
-                <button className="action-btn" style={{ marginTop: "10px", width: "100%" }}>Update Password</button>
+                <input
+                  type="password"
+                  placeholder="Current Password"
+                  style={{ marginBottom: "10px" }}
+                  value={passwordData.current}
+                  onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
+                />
+                <input
+                  type="password"
+                  placeholder="New Password"
+                  value={passwordData.new}
+                  onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
+                />
+                <button className="action-btn" style={{ marginTop: "10px", width: "100%" }} onClick={handlePasswordUpdate}>Update Password</button>
               </div>
             </div>
           </div>

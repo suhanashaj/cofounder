@@ -4,7 +4,7 @@ import "../css/landing.css";
 
 function Landing() {
     const navigate = useNavigate();
-    const isLoggedIn = localStorage.getItem("loggedInUser");
+    const isLoggedIn = sessionStorage.getItem("loggedInUser");
 
     return (
         <div className="landing-wrapper">
