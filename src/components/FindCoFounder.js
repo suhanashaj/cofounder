@@ -27,22 +27,38 @@ function FindCoFounder() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const [allUsers, connections, profile] = await Promise.all([
-        getUsers(),
-        getConnectionRequests(username),
-        getCurrentUserProfile()
-      ]);
-      setUsers(allUsers);
-      setMyConnections(connections);
-      if (profile.success) setUserData(profile.data);
+      try {
+        const [allUsers, connections, profile] = await Promise.all([
+          getUsers(),
+          getConnectionRequests(username),
+          getCurrentUserProfile()
+        ]);
+        setUsers(allUsers);
+        setMyConnections(connections);
+        if (profile.success) setUserData(profile.data);
 
-      // Initial results: show all verified/approved users except self
-      const initialMatches = allUsers.filter(u => u.username !== username && u.verified && u.certificateApproved);
-      setResults(initialMatches);
-
-      setLoading(false);
+        // Initial results: show all verified/approved users except self
+        const initialMatches = allUsers.filter(u => u.username !== username && u.verified && u.certificateApproved);
+        setResults(initialMatches);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        // Set empty arrays on error to prevent crashes
+        setUsers([]);
+        setResults([]);
+        setMyConnections([]);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    // Set a maximum loading time of 5 seconds
+    const loadingTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     fetchData();
+
+    return () => clearTimeout(loadingTimeout);
   }, [username]);
 
   useEffect(() => {

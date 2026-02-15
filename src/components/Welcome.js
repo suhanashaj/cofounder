@@ -13,31 +13,48 @@ function Welcome() {
   useEffect(() => {
     const fetchUserData = async () => {
       if (username) {
-        // First sync the verification status (updates Firestore if verified)
-        await syncEmailVerification();
+        try {
+          // Parallel execution for faster loading
+          const [syncResult, profileResult] = await Promise.all([
+            syncEmailVerification(),
+            getCurrentUserProfile()
+          ]);
 
-        // Then fetch the fresh data
-        const res = await getCurrentUserProfile();
-        if (res.success) {
-          setUserData(res.data);
+          if (profileResult.success) {
+            setUserData(profileResult.data);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
         }
       }
       setLoading(false);
     };
+
+    // Set a maximum loading time of 3 seconds
+    const loadingTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
     fetchUserData();
+
+    return () => clearTimeout(loadingTimeout);
   }, [username]);
 
-  // Poll for unread messages
+  // Poll for unread messages - reduced frequency
   useEffect(() => {
     const fetchUnread = async () => {
       if (username) {
-        const counts = await getUnreadCounts(username);
-        const total = Object.values(counts).reduce((a, b) => a + b, 0);
-        setUnreadCount(total);
+        try {
+          const counts = await getUnreadCounts(username);
+          const total = Object.values(counts).reduce((a, b) => a + b, 0);
+          setUnreadCount(total);
+        } catch (error) {
+          console.error("Error fetching unread counts:", error);
+        }
       }
     };
     fetchUnread(); // Initial fetch
-    const interval = setInterval(fetchUnread, 5000); // Poll every 5s
+    const interval = setInterval(fetchUnread, 30000); // Poll every 30s instead of 5s
     return () => clearInterval(interval);
   }, [username]);
 

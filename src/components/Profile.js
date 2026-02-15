@@ -39,18 +39,31 @@ function Profile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const res = await getCurrentUserProfile();
-      if (res.success) {
-        setProfile(prev => ({
-          ...prev,
-          ...res.data,
-          certificate: prev.certificate,
-          profilePic: prev.profilePic
-        }));
+      try {
+        const res = await getCurrentUserProfile();
+        if (res.success) {
+          setProfile(prev => ({
+            ...prev,
+            ...res.data,
+            certificate: prev.certificate,
+            profilePic: prev.profilePic
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setInitialLoading(false);
       }
-      setInitialLoading(false);
     };
+
+    // Set a maximum loading time of 3 seconds
+    const loadingTimeout = setTimeout(() => {
+      setInitialLoading(false);
+    }, 3000);
+
     fetchProfile();
+
+    return () => clearTimeout(loadingTimeout);
   }, [username]);
 
   const handleChange = (e) => {
