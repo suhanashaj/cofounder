@@ -140,6 +140,42 @@ function Welcome() {
           </div>
         </header>
 
+        {/* About User Card */}
+        <div className="about-card" style={{ marginTop: "0", marginBottom: "40px" }}>
+          <div className="about-header">
+            <div className="traffic-light traffic-red"></div>
+            <div className="traffic-light traffic-yellow"></div>
+            <div className="traffic-light traffic-green"></div>
+          </div>
+          <div className="about-content">
+            <img
+              src={userData?.profilePic || userData?.profilePicUrl || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
+              alt="Profile"
+              className="about-avatar"
+            />
+            <div className="about-details">
+              <div className="about-name">{userData?.fullName || username}</div>
+              <div className="about-role">{userData?.role || "Entrepreneur"}</div>
+
+              <div className="about-text">
+                {userData?.about || "No bio added yet. Go to Profile to introduce yourself!"}
+              </div>
+
+              <div className="skills-container">
+                {userData?.skills && userData.skills.trim().length > 0 ? (
+                  userData.skills.split(',').filter(s => s.trim().length > 0).map((skill, index) => (
+                    <span key={index} className="skill-pill">
+                      {skill.trim()}
+                    </span>
+                  ))
+                ) : (
+                  <span className="skill-pill" style={{ fontStyle: "italic", opacity: 0.7 }}>No skills listed yet</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Stats Section */}
         <section className="stats-grid">
           <div className="stat-card">
@@ -190,6 +226,8 @@ function Welcome() {
             Tip: A complete profile gets 3x more interests. Add your vision to stand out!
           </p>
         </div>
+
+
       </main>
     </div>
   );
