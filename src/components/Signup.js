@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signup } from "../utils/api";
 import { auth } from "../firebase";
+import "../css/signup.css";
 
 function Signup() {
   const [username, setUsername] = useState("");
@@ -71,17 +72,17 @@ function Signup() {
   }
 
   return (
-    <div className="container">
+    <div className="container signup-page-container">
       <div className="left">
         <div className="auth-image-container">
           <img
-            src="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=800"
-            alt="Startup Team"
+            src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=1200"
+            alt="JOIN US Workspace"
             className="auth-image"
           />
           <div className="auth-overlay">
-            <h2>Join Us Today,</h2>
-            <p>Create your account and start your journey.</p>
+            <h2>JOIN US</h2>
+            <p>Start your journey with us today</p>
           </div>
         </div>
       </div>
@@ -120,7 +121,7 @@ function Signup() {
             <option value="Founder">Founder</option>
             <option value="Cofounder">Cofounder</option>
           </select>
-          <p style={{ color: "#ffb3b3" }}>{error}</p>
+          {error && <p style={{ color: "#ffb3b3" }}>{error}</p>}
           <button type="submit">Signup</button>
         </form>
         <button className="secondary-btn" onClick={() => navigate("/login")}>Back to Login</button>

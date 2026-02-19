@@ -1,0 +1,27 @@
+/* src/css/signup.css */
+
+.signup-page-container .auth-image {
+    filter: grayscale(100%) brightness(0.9) contrast(1.1);
+    transition: all 0.5s ease;
+    object-fit: cover;
+}
+
+.signup-page-container .auth-image-container:hover .auth-image {
+    filter: grayscale(100%) brightness(1.05) contrast(1.2);
+    transform: scale(1.02);
+}
+
+.auth-overlay h2 {
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    font-weight: 900;
+    margin-bottom: 8px;
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.auth-overlay p {
+    font-size: 1.1rem;
+    opacity: 0.8;
+    font-weight: 300;
+}
