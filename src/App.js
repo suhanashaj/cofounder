@@ -11,6 +11,10 @@ import Admin from "./components/Admin";
 import FindCoFounder from "./components/FindCoFounder";
 import Welcome from "./components/Welcome";
 import Messages from "./components/Messages";
+import Features from "./components/Features";
+import Pricing from "./components/Pricing";
+import About from "./components/About";
+import Blog from "./components/Blog";
 
 function App() {
   const getUser = () => sessionStorage.getItem("loggedInUser");
@@ -41,6 +45,10 @@ function App() {
 
         {/* Protected Admin Route */}
         <Route path="/admin" element={isAdmin() ? <Admin /> : <Navigate to="/welcome" />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/blog" element={<Blog />} />
 
         {/* Catch-all Route */}
         <Route path="*" element={<Navigate to="/" />} />

@@ -77,14 +77,14 @@ function Landing() {
             {/* Speed Up Workflow Section */}
             <section className="workflow-section">
                 <div className="workflow-content">
-                    <span className="section-label">Features</span>
+                    <span className="section-label" onClick={() => navigate("/features")} style={{ cursor: "pointer" }}>Features</span>
                     <h2 className="workflow-title">Speed up your co-founder search with one powerful tool</h2>
                     <p className="workflow-description">
                         Our platform streamlines every step of finding and connecting with the perfect co-founder,
                         from discovery to collaboration.
                     </p>
                     <button className="btn-primary" onClick={() => navigate("/signup")}>Get Started</button>
-                    <button className="btn-ghost" style={{ marginLeft: "20px" }}>Browse All Features →</button>
+                    <button className="btn-ghost" onClick={() => navigate("/features")} style={{ marginLeft: "20px" }}>Browse All Features →</button>
                 </div>
             </section>
 
@@ -161,13 +161,13 @@ function Landing() {
                     <div className="footer-links">
                         <div className="footer-column">
                             <h4>Product</h4>
-                            <a href="#features">Features</a>
-                            <a href="#pricing">Pricing</a>
-                            <a href="#about">About</a>
+                            <span className="footer-link-span" onClick={() => navigate("/features")}>Features</span>
+                            <span className="footer-link-span" onClick={() => navigate("/pricing")}>Pricing</span>
+                            <span className="footer-link-span" onClick={() => navigate("/about")}>About</span>
                         </div>
                         <div className="footer-column">
                             <h4>Resources</h4>
-                            <a href="#blog">Blog</a>
+                            <span className="footer-link-span" onClick={() => navigate("/blog")}>Blog</span>
                             <a href="#help">Help Center</a>
                             <a href="#contact">Contact</a>
                         </div>

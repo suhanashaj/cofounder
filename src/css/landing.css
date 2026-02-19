@@ -515,16 +515,19 @@
     letter-spacing: 1px;
 }
 
-.footer-column a {
+.footer-column a,
+.footer-link-span {
     display: block;
     color: var(--text-muted);
     text-decoration: none;
     margin-bottom: 12px;
     transition: color 0.2s;
     font-size: 0.95rem;
+    cursor: pointer;
 }
 
-.footer-column a:hover {
+.footer-column a:hover,
+.footer-link-span:hover {
     color: var(--primary);
 }
 
