@@ -34,6 +34,8 @@ function Profile() {
     "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop"
   ];
 
+  const [errors, setErrors] = useState({});
+
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -69,6 +71,14 @@ function Profile() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
+    // Clear error for the field being edited
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleFileChange = (e, field) => {
@@ -77,6 +87,14 @@ function Profile() {
       const reader = new FileReader();
       reader.onload = () => {
         setProfile((prev) => ({ ...prev, [field]: reader.result, profilePicUrl: "" }));
+        // Clear error for the field
+        if (errors[field]) {
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[field];
+            return newErrors;
+          });
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -114,6 +132,35 @@ function Profile() {
       alert("User session not found. Please login again.");
       return;
     }
+
+    // Mandatory fields validation
+    const newErrors = {};
+    if (!profile.fullName || profile.fullName.trim() === "") {
+      newErrors.fullName = "Full Name is mandatory";
+    }
+
+    if (!profile.skills || profile.skills.trim() === "") {
+      newErrors.skills = "Skill is mandatory";
+    }
+
+    if (!profile.domain || profile.domain.trim() === "") {
+      newErrors.domain = "Domain is mandatory";
+    }
+
+    if (!profile.location || profile.location.trim() === "") {
+      newErrors.location = "Location is mandatory";
+    }
+
+    if (!profile.availability || profile.availability === "") {
+      newErrors.availability = "Availability is mandatory";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      alert("Please fill in all mandatory fields (marked with *)");
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await saveProfileAPI(username, profile);
@@ -287,7 +334,9 @@ function Profile() {
                   />
                 </label>
 
-                <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "10px", textAlign: "left" }}>Documents</h4>
+                <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "10px", textAlign: "left" }}>
+                  Documents
+                </h4>
                 <label className="file-upload-label" style={{ width: "100%", textAlign: "center" }}>
                   Upload Certificate
                   <input type="file" onChange={(e) => handleFileChange(e, "certificate")} style={{ display: "none" }} />
@@ -330,41 +379,75 @@ function Profile() {
                   <input value={username} readOnly />
                 </div>
                 <div className="form-group">
-                  <label>Full Name</label>
-                  <input name="fullName" placeholder="Enter full name" value={profile.fullName} onChange={handleChange} />
+                  <label>Full Name <span className="required-star">*</span></label>
+                  <input
+                    name="fullName"
+                    placeholder="Enter full name"
+                    value={profile.fullName}
+                    onChange={handleChange}
+                    className={errors.fullName ? "input-error" : ""}
+                  />
+                  {errors.fullName && <span className="error-message">{errors.fullName}</span>}
                 </div>
                 <div className="form-group">
                   <label>Role</label>
                   <input value={profile.role} readOnly />
                 </div>
                 <div className="form-group">
-                  <label>Location</label>
-                  <input name="location" placeholder="City, Country" value={profile.location} onChange={handleChange} />
+                  <label>Location <span className="required-star">*</span></label>
+                  <input
+                    name="location"
+                    placeholder="City, Country"
+                    value={profile.location}
+                    onChange={handleChange}
+                    className={errors.location ? "input-error" : ""}
+                  />
+                  {errors.location && <span className="error-message">{errors.location}</span>}
                 </div>
               </div>
 
               <h3>Professional Details</h3>
               <div className="form-grid">
                 <div className="form-group">
-                  <label>Skills</label>
-                  <input name="skills" placeholder="e.g. React, Python, Marketing" value={profile.skills} onChange={handleChange} />
+                  <label>Skills <span className="required-star">*</span></label>
+                  <input
+                    name="skills"
+                    placeholder="e.g. React, Python, Marketing"
+                    value={profile.skills}
+                    onChange={handleChange}
+                    className={errors.skills ? "input-error" : ""}
+                  />
+                  {errors.skills && <span className="error-message">{errors.skills}</span>}
                 </div>
                 <div className="form-group">
-                  <label>Domain</label>
-                  <input name="domain" placeholder="e.g. Fintech, Edtech" value={profile.domain} onChange={handleChange} />
+                  <label>Domain <span className="required-star">*</span></label>
+                  <input
+                    name="domain"
+                    placeholder="e.g. Fintech, Edtech"
+                    value={profile.domain}
+                    onChange={handleChange}
+                    className={errors.domain ? "input-error" : ""}
+                  />
+                  {errors.domain && <span className="error-message">{errors.domain}</span>}
                 </div>
                 <div className="form-group">
                   <label>Experience (Years)</label>
                   <input name="experience" type="number" value={profile.experience} onChange={handleChange} />
                 </div>
                 <div className="form-group">
-                  <label>Availability</label>
-                  <select name="availability" value={profile.availability} onChange={handleChange}>
+                  <label>Availability <span className="required-star">*</span></label>
+                  <select
+                    name="availability"
+                    value={profile.availability}
+                    onChange={handleChange}
+                    className={errors.availability ? "input-error" : ""}
+                  >
                     <option value="">Select...</option>
                     <option value="Full-time">Full-time</option>
                     <option value="Part-time">Part-time</option>
                     <option value="Weekends">Weekends</option>
                   </select>
+                  {errors.availability && <span className="error-message">{errors.availability}</span>}
                 </div>
               </div>
 
