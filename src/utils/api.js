@@ -1,7 +1,7 @@
-import { auth, db, storage, rtdb } from "../firebase";
+import { auth, db, rtdb } from "../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, updatePassword, setPersistence, browserSessionPersistence } from "firebase/auth";
 import { doc, setDoc, getDocs, collection, updateDoc, query, where, addDoc, serverTimestamp, getDoc, deleteDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
 import { ref as rtdbRef, get, child } from "firebase/database";
 
 // HELPER: Wait for Auth to likely be ready
@@ -82,6 +82,7 @@ export const login = async (email, password) => {
     // Get username and role from Firestore by UID directly (avoids collection query permission issues)
     let username = email;
     let role = "user";
+    let profilePicUrl = "";
     try {
       console.log("Firestore: Fetching profile for UID:", uid);
       const userDocRef = doc(db, "users", uid);
@@ -91,6 +92,7 @@ export const login = async (email, password) => {
         const userData = userSnap.data();
         username = userData.username || email;
         role = userData.role || "user";
+        profilePicUrl = getDirectDriveLink(userData.profilePicUrl || "");
         console.log("Firestore: Profile found, username:", username, "role:", role);
       } else {
         console.warn("Firestore: No user document found for UID:", uid);
@@ -99,7 +101,7 @@ export const login = async (email, password) => {
       console.error("Firestore: Error fetching user doc:", fsErr);
     }
 
-    return { success: true, user: res.user, username, role };
+    return { success: true, user: res.user, username, role, profilePicUrl };
   } catch (error) {
     console.error("Login overall error:", error.code, error.message);
     return { success: false, msg: error.message, code: error.code };
@@ -143,12 +145,26 @@ export const getProfileAPI = async (username) => {
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
-      return { success: true, data: querySnapshot.docs[0].data() };
+      const data = querySnapshot.docs[0].data();
+      if (data.profilePicUrl) {
+        data.profilePicUrl = getDirectDriveLink(data.profilePicUrl);
+      }
+      return { success: true, data };
     }
     return { success: false, msg: "Profile not found" };
   } catch (error) {
     return { success: false, msg: error.message };
   }
+};
+
+// Helper to convert Drive viewer link to direct image link
+const getDirectDriveLink = (url) => {
+  if (!url) return url;
+  if (url.includes("drive.google.com/file/d/")) {
+    const fileId = url.split("/d/")[1]?.split("/")[0];
+    if (fileId) return `https://drive.google.com/uc?export=view&id=${fileId}`;
+  }
+  return url;
 };
 
 // GET CURRENT USER PROFILE (Private/Self)
@@ -161,13 +177,54 @@ export const getCurrentUserProfile = async () => {
     const userSnap = await getDoc(userDocRef);
 
     if (userSnap.exists()) {
-      return { success: true, data: userSnap.data() };
+      const data = userSnap.data();
+      // Fix drive links for profile picture
+      if (data.profilePicUrl) {
+        data.profilePicUrl = getDirectDriveLink(data.profilePicUrl);
+      }
+      return { success: true, data };
     } else {
       return { success: false, msg: "Profile document does not exist" };
     }
   } catch (error) {
     console.error("Error getting current profile:", error);
     return { success: false, msg: error.message };
+  }
+};
+
+// Helper to upload to Google Drive via backend
+const uploadToGDrive = async (file, username, role) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("username", username);
+    formData.append("role", role);
+
+    console.log("Frontend: Attempting upload...", { username, role, file: file.name });
+
+    const response = await fetch("http://localhost:5000/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let errorMsg = "Upload failed";
+      try {
+        const errorData = await response.json();
+        errorMsg = errorData.message || errorMsg;
+      } catch (e) {
+        errorMsg = `Server error: ${response.status}`;
+      }
+      throw new Error(errorMsg);
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.error("uploadToGDrive error:", err);
+    if (err.message === "Failed to fetch") {
+      throw new Error("Cannot connect to backend server. Please ensure the Node server is running on port 5000.");
+    }
+    throw err;
   }
 };
 
@@ -178,40 +235,37 @@ export const saveProfileAPI = async (username, profileData) => {
     if (!user) return { success: false, msg: "You must be logged in to save." };
 
     const uid = user.uid;
+    const role = profileData.role || "Founder";
 
     let certificateUrl = profileData.certificateUrl || "";
-    if (profileData.certificate && typeof profileData.certificate !== "string") {
-      const storageRef = ref(storage, `certificates/${username}_${Date.now()}`);
-      const res = await uploadBytes(storageRef, profileData.certificate);
-      certificateUrl = await getDownloadURL(res.ref);
+    if (profileData.certificate && profileData.certificate instanceof File) {
+      const uploadRes = await uploadToGDrive(profileData.certificate, username, role);
+      certificateUrl = uploadRes.url;
     }
 
     let profilePicUrl = profileData.profilePicUrl || "";
-    if (profileData.profilePic && typeof profileData.profilePic !== "string") {
-      const storageRef = ref(storage, `profiles/${username}_${Date.now()}`);
-      const res = await uploadBytes(storageRef, profileData.profilePic);
-      profilePicUrl = await getDownloadURL(res.ref);
+    if (profileData.profilePic && profileData.profilePic instanceof File) {
+      const uploadRes = await uploadToGDrive(profileData.profilePic, username, role);
+      profilePicUrl = uploadRes.url;
     }
 
-    // Direct reference using authenticated UID - Safe & Secure
     const userRef = doc(db, "users", uid);
-
-    // Remove file objects before saving to Firestore
     const { certificate, profilePic, ...dataToSave } = profileData;
 
-    // Use setDoc with merge: true to ensure it works even if doc is missing/partial
+    console.log("Saving to Firestore...", { ...dataToSave, certificateUrl, profilePicUrl });
+
     await setDoc(userRef, {
       ...dataToSave,
       certificateUrl,
       profilePicUrl,
-      username: username // Ensure username is kept/updated
+      username: username
     }, { merge: true });
 
-    return { success: true, msg: "Profile saved" };
+    return { success: true, msg: "Profile saved successfully!" };
 
   } catch (err) {
-    console.error("Save profile error:", err);
-    return { success: false, msg: err.message };
+    console.error("saveProfileAPI error:", err);
+    return { success: false, msg: err.message || "An error occurred while saving profile" };
   }
 };
 

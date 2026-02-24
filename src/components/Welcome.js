@@ -6,6 +6,7 @@ import "../css/dashboard.css";
 function Welcome() {
   const navigate = useNavigate();
   const username = sessionStorage.getItem("loggedInUser");
+  const cachedProfilePic = sessionStorage.getItem("userProfilePic");
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -101,6 +102,17 @@ function Welcome() {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-logo">Cofounder.</div>
+
+        {/* Sidebar Mini Profile */}
+        <div className="sidebar-user-preview" style={{ padding: "20px", borderBottom: "1px solid var(--border-glass)", marginBottom: "10px", textAlign: "center" }}>
+          <img
+            src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
+            alt="User"
+            style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+          />
+          <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
+        </div>
+
         <ul className="nav-menu">
           <li className="nav-item active" onClick={() => navigate("/welcome")}>
             <span>🏠</span> Dashboard
@@ -149,9 +161,10 @@ function Welcome() {
           </div>
           <div className="about-content">
             <img
-              src={userData?.profilePic || userData?.profilePicUrl || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
+              src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
               alt="Profile"
               className="about-avatar"
+              style={{ objectFit: "cover" }}
             />
             <div className="about-details">
               <div className="about-name">{userData?.fullName || username}</div>

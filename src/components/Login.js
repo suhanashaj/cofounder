@@ -35,6 +35,9 @@ function Login() {
         sessionStorage.setItem("loggedInUser", data.username || email);
         sessionStorage.setItem("userEmail", email);
         sessionStorage.setItem("userRole", data.role || "user");
+        if (data.profilePicUrl) {
+          sessionStorage.setItem("userProfilePic", data.profilePicUrl);
+        }
 
         const normalizedEmail = email.toLowerCase();
         const isAdmin = data.role === "admin" || normalizedEmail === "appadmin@gmail.com" || normalizedEmail === "admin@example.com";

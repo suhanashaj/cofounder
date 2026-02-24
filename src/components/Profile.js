@@ -84,9 +84,20 @@ function Profile() {
   const handleFileChange = (e, field) => {
     const file = e.target.files[0];
     if (file) {
+      // Store the actual file object for uploading
+      setProfile((prev) => ({ ...prev, [field]: file }));
+
+      // For previewing
       const reader = new FileReader();
       reader.onload = () => {
-        setProfile((prev) => ({ ...prev, [field]: reader.result, profilePicUrl: "" }));
+        if (field === 'profilePic') {
+          // Update preview URL for profile pic
+          setProfile(prev => ({ ...prev, profilePicUrl: reader.result }));
+        } else if (field === 'certificate') {
+          // Update preview URL for certificate (if there was a preview field)
+          setProfile(prev => ({ ...prev, certificateUrl: reader.result }));
+        }
+
         // Clear error for the field
         if (errors[field]) {
           setErrors(prev => {
@@ -165,6 +176,10 @@ function Profile() {
     try {
       const data = await saveProfileAPI(username, profile);
       alert(data.msg);
+      // Sync sessionStorage if profile pic was updated
+      if (profile.profilePicUrl) {
+        sessionStorage.setItem("userProfilePic", profile.profilePicUrl);
+      }
     } catch (err) {
       alert("Error saving profile: " + err.message);
     } finally {
@@ -237,7 +252,7 @@ function Profile() {
             <div className="profile-card profile-sidebar-card">
               <div className="profile-avatar-container" style={{ position: "relative" }}>
                 <img
-                  src={profile.profilePic || profile.profilePicUrl || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
+                  src={profile.profilePicUrl || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
                   className="profile-avatar-img"
                   alt="Avatar"
                 />
@@ -334,15 +349,81 @@ function Profile() {
                   />
                 </label>
 
-                <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "10px", textAlign: "left" }}>
-                  Documents
+                <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "15px", textAlign: "left" }}>
+                  Verification Document
                 </h4>
-                <label className="file-upload-label" style={{ width: "100%", textAlign: "center" }}>
-                  Upload Certificate
-                  <input type="file" onChange={(e) => handleFileChange(e, "certificate")} style={{ display: "none" }} />
+
+                {/* Certificate Preview/Status Area */}
+                {(profile.certificate || profile.certificateUrl) && (
+                  <div style={{
+                    marginBottom: "15px",
+                    padding: "15px",
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px"
+                  }}>
+                    <div style={{
+                      width: "50px",
+                      height: "50px",
+                      background: "rgba(99, 102, 241, 0.1)",
+                      borderRadius: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.5rem"
+                    }}>
+                      {profile.certificateUrl?.toLowerCase().endsWith('.pdf') || (profile.certificate instanceof File && profile.certificate.type === 'application/pdf') ? '📄' : '🖼️'}
+                    </div>
+                    <div style={{ textAlign: "left" }}>
+                      <p style={{ fontSize: "0.85rem", fontWeight: "700", marginBottom: "2px" }}>
+                        {profile.certificateUrl ? "Certificate Uploaded" : "New Document Ready"}
+                      </p>
+                      <a
+                        href={profile.certificateUrl || "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ fontSize: "0.75rem", color: "var(--accent-color)", textDecoration: "none", fontWeight: "600" }}
+                        onClick={(e) => !profile.certificateUrl && e.preventDefault()}
+                      >
+                        {profile.certificateUrl ? "View Document ↗" : "Preview Pending Save"}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                <label
+                  className="file-upload-label"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "10px",
+                    width: "100%",
+                    padding: "14px",
+                    background: "var(--primary-bg)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.3s",
+                    fontSize: "0.9rem",
+                    fontWeight: "600"
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-color)"; e.currentTarget.style.background = "rgba(99, 102, 241, 0.05)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-glass)"; e.currentTarget.style.background = "var(--primary-bg)"; }}
+                >
+                  <span>📤</span> {profile.certificateUrl ? "Replace Certificate" : "Upload Certificate"}
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e, "certificate")}
+                    style={{ display: "none" }}
+                    accept=".pdf,image/*"
+                  />
                 </label>
-                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "8px" }}>
-                  PDF or Images only
+                <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "10px", fontStyle: "italic" }}>
+                  Upload a PDF or Image of your professional certificate for verification.
                 </p>
               </div>
             </div>
