@@ -13,6 +13,7 @@ function Messages() {
     const [unreadCounts, setUnreadCounts] = useState({});
     const messagesEndRef = useRef(null);
     const [loading, setLoading] = useState(true);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -112,19 +113,24 @@ function Messages() {
 
     return (
         <div className="dashboard-wrapper">
-            <aside className="sidebar">
+            {/* Mobile Toggle */}
+            <button className="mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                {isMenuOpen ? "✕" : "☰"}
+            </button>
+
+            <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`}>
                 <div className="sidebar-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>Cofounder.</div>
                 <ul className="nav-menu">
-                    <li className="nav-item" onClick={() => navigate("/welcome")}>
+                    <li className="nav-item" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
                         <span style={{ fontSize: "1.2rem" }}>🏠</span> Dashboard
                     </li>
-                    <li className="nav-item" onClick={() => navigate("/profile")}>
+                    <li className="nav-item" onClick={() => { navigate("/profile"); setIsMenuOpen(false); }}>
                         <span style={{ fontSize: "1.2rem" }}>👤</span> My Profile
                     </li>
-                    <li className="nav-item" onClick={() => navigate("/find")}>
+                    <li className="nav-item" onClick={() => { navigate("/find"); setIsMenuOpen(false); }}>
                         <span style={{ fontSize: "1.2rem" }}>🔍</span> Find Partners
                     </li>
-                    <li className="nav-item active" onClick={() => navigate("/messages")}>
+                    <li className="nav-item active" onClick={() => { navigate("/messages"); setIsMenuOpen(false); }}>
                         <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
                             <span>💬 Messages</span>
                             {Object.values(unreadCounts).reduce((a, b) => a + b, 0) > 0 && (
@@ -139,6 +145,9 @@ function Messages() {
                     <span>🚪</span> Logout
                 </div>
             </aside>
+
+            {/* Backdrop for mobile menu */}
+            {isMenuOpen && <div className="sidebar-backdrop" onClick={() => setIsMenuOpen(false)}></div>}
 
             <main className="main-content" style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", padding: 0 }}>
                 <header className="header-section" style={{ flexShrink: 0, padding: "40px 48px 20px" }}>

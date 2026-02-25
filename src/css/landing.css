@@ -71,6 +71,24 @@
     gap: 15px;
 }
 
+.landing-mobile-toggle {
+    display: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: white;
+}
+
+.landing-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 998;
+}
+
 /* Hero Section */
 .hero-section {
     padding: 120px 8% 100px;
@@ -344,36 +362,143 @@
     flex: 1;
 }
 
+/* =============================================
+   LANDING MOCKUP — matches Dashboard about-card
+   ============================================= */
 .visual-mockup {
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    padding: 30px;
-    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+    background: #0f172a;
+    border-radius: 40px;
+    padding: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.85);
+    position: relative;
 }
 
 .mockup-header {
-    margin-bottom: 30px;
     display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
 }
 
 .mockup-dots span {
+    display: inline-block;
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    margin-right: 8px;
 }
 
 .mockup-dots span:nth-child(1) {
-    background: #ef4444;
+    background: #ff5f56;
 }
 
 .mockup-dots span:nth-child(2) {
-    background: #f59e0b;
+    background: #ffbd2e;
 }
 
 .mockup-dots span:nth-child(3) {
-    background: #10b981;
+    background: #27c93f;
+}
+
+/* Mockup inner content — dashboard card layout */
+.mockup-content {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+}
+
+.profile-preview {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #818cf8, #4f46e5);
+    border: 3px solid #6366f1;
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+    position: relative;
+    z-index: 1;
+}
+
+.preview-avatar::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+    opacity: 0.5;
+    filter: blur(12px);
+    z-index: -1;
+}
+
+.preview-info {
+    flex: 1;
+}
+
+.preview-name {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.5px;
+    margin-bottom: 2px;
+}
+
+.preview-role {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+}
+
+.preview-bio {
+    color: #94a3b8;
+    line-height: 1.6;
+    background: rgba(13, 20, 38, 0.7);
+    padding: 14px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-left: 3px solid #6366f1;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.skill-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    background: rgba(99, 102, 241, 0.15);
+    color: #94a3b8;
+    padding: 8px 20px;
+    border-radius: 24px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s;
+    cursor: default;
+}
+
+.tag:hover {
+    background: rgba(99, 102, 241, 0.25);
+    color: white;
+    border-color: rgba(99, 102, 241, 0.4);
 }
 
 .create-content {
@@ -599,7 +724,34 @@
 
 @media (max-width: 768px) {
     .landing-nav {
-        padding: 20px 5%;
+        padding: 15px 5% !important;
+    }
+
+    .landing-mobile-toggle {
+        display: block;
+        z-index: 1001;
+    }
+
+    .nav-auth-btns {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 250px;
+        height: 100vh;
+        background: #020617;
+        flex-direction: column;
+        padding: 100px 30px;
+        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000;
+        border-left: 1px solid var(--border-glass);
+    }
+
+    .nav-auth-btns.active {
+        right: 0;
+    }
+
+    .nav-auth-btns button {
+        width: 100% !important;
     }
 
     .hero-title {
@@ -650,11 +802,6 @@
         font-size: 2.2rem;
     }
 
-    .nav-auth-btns {
-        display: none;
-    }
-
-    /* Could add a mobile menu here later */
     .hero-visual-container {
         width: 280px;
         height: 280px;

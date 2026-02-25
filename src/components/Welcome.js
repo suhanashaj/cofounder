@@ -11,6 +11,7 @@ function Welcome() {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [connectionCount, setConnectionCount] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -99,8 +100,13 @@ function Welcome() {
 
   return (
     <div className="dashboard-wrapper">
+      {/* Mobile Toggle */}
+      <button className="mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+        {isMenuOpen ? "✕" : "☰"}
+      </button>
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-logo">Cofounder.</div>
 
         {/* Sidebar Mini Profile */}
@@ -114,16 +120,16 @@ function Welcome() {
         </div>
 
         <ul className="nav-menu">
-          <li className="nav-item active" onClick={() => navigate("/welcome")}>
+          <li className="nav-item active" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
             <span>🏠</span> Dashboard
           </li>
-          <li className="nav-item" onClick={() => navigate("/profile")}>
+          <li className="nav-item" onClick={() => { navigate("/profile"); setIsMenuOpen(false); }}>
             <span>👤</span> My Profile
           </li>
-          <li className="nav-item" onClick={() => navigate("/find")}>
+          <li className="nav-item" onClick={() => { navigate("/find"); setIsMenuOpen(false); }}>
             <span>🔍</span> Find Partners
           </li>
-          <li className="nav-item" onClick={() => navigate("/messages")}>
+          <li className="nav-item" onClick={() => { navigate("/messages"); setIsMenuOpen(false); }}>
             <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
               <span>💬 Messages</span>
               {unreadCount > 0 && (
@@ -139,6 +145,9 @@ function Welcome() {
         </div>
       </aside>
 
+      {/* Backdrop for mobile menu */}
+      {isMenuOpen && <div className="sidebar-backdrop" onClick={() => setIsMenuOpen(false)}></div>}
+
       {/* Main Content */}
       <main className="main-content">
         <header className="header-section">
@@ -148,7 +157,7 @@ function Welcome() {
           </div>
           <div className="user-badge">
             <div className="badge-dot"></div>
-            <span>{userData?.role || 'Member'}</span>
+            <span>{(userData?.role || 'Member').toLowerCase()}</span>
           </div>
         </header>
 
@@ -160,15 +169,17 @@ function Welcome() {
             <div className="traffic-light traffic-green"></div>
           </div>
           <div className="about-content">
-            <img
-              src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
-              alt="Profile"
-              className="about-avatar"
-              style={{ objectFit: "cover" }}
-            />
+            <div className="about-avatar-wrapper">
+              <div className="avatar-glow"></div>
+              <img
+                src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
+                alt="Profile"
+                className="about-avatar"
+              />
+            </div>
             <div className="about-details">
               <div className="about-name">{userData?.fullName || username}</div>
-              <div className="about-role">{userData?.role || "Entrepreneur"}</div>
+              <div className="about-role text-gradient">{userData?.role || "USER"}</div>
 
               <div className="about-text">
                 {userData?.about || "No bio added yet. Go to Profile to introduce yourself!"}
@@ -182,7 +193,7 @@ function Welcome() {
                     </span>
                   ))
                 ) : (
-                  <span className="skill-pill" style={{ fontStyle: "italic", opacity: 0.7 }}>No skills listed yet</span>
+                  <span className="skill-pill" style={{ fontStyle: "italic", opacity: 0.7 }}>no skills listed</span>
                 )}
               </div>
             </div>
@@ -192,25 +203,25 @@ function Welcome() {
         {/* Stats Section */}
         <section className="stats-grid">
           <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon" style={{ backgroundColor: "rgba(99, 102, 241, 0.1)", color: "#6366f1" }}>🛡️</div>
+            <div className="stat-icon-wrapper blue">🛡️</div>
+            <div className="stat-content">
+              <div className="stat-value">{userData?.verified ? "Verified" : "Pending"}</div>
+              <div className="stat-label">Email Status</div>
             </div>
-            <div className="stat-value">{userData?.verified ? "Verified" : "Pending"}</div>
-            <div className="stat-label">Email Status</div>
           </div>
           <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon" style={{ backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>📜</div>
+            <div className="stat-icon-wrapper orange">📜</div>
+            <div className="stat-content">
+              <div className="stat-value">{userData?.certificateApproved ? "Approved" : "Under Review"}</div>
+              <div className="stat-label">Certificate Status</div>
             </div>
-            <div className="stat-value">{userData?.certificateApproved ? "Approved" : "Under Review"}</div>
-            <div className="stat-label">Certificate Status</div>
           </div>
           <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon" style={{ backgroundColor: "rgba(245, 158, 11, 0.1)", color: "#f59e0b" }}>🤝</div>
+            <div className="stat-icon-wrapper yellow">🤝</div>
+            <div className="stat-content">
+              <div className="stat-value">{connectionCount}</div>
+              <div className="stat-label">Connections Made</div>
             </div>
-            <div className="stat-value">{connectionCount}</div>
-            <div className="stat-label">Connections Made</div>
           </div>
         </section>
 

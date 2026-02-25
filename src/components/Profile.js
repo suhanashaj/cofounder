@@ -25,6 +25,8 @@ function Profile() {
     about: "",
   });
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const professionalAvatars = [
     "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop",
     "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
@@ -212,20 +214,25 @@ function Profile() {
 
   return (
     <div className="profile-page-wrapper">
+      {/* Mobile Toggle */}
+      <button className="mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+        {isMenuOpen ? "✕" : "☰"}
+      </button>
+
       {/* Sidebar - Consistent with Dashboard */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-logo">Cofounder.</div>
         <ul className="nav-menu">
-          <li className="nav-item" onClick={() => navigate("/welcome")}>
+          <li className="nav-item" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
             <span>🏠</span> Dashboard
           </li>
-          <li className="nav-item active" onClick={() => navigate("/profile")}>
+          <li className="nav-item active" onClick={() => { navigate("/profile"); setIsMenuOpen(false); }}>
             <span>👤</span> My Profile
           </li>
-          <li className="nav-item" onClick={() => navigate("/find")}>
+          <li className="nav-item" onClick={() => { navigate("/find"); setIsMenuOpen(false); }}>
             <span>🔍</span> Find Partners
           </li>
-          <li className="nav-item" onClick={() => navigate("/messages")}>
+          <li className="nav-item" onClick={() => { navigate("/messages"); setIsMenuOpen(false); }}>
             <span>💬</span> Messages
           </li>
         </ul>
@@ -233,6 +240,9 @@ function Profile() {
           <span>🚪</span> Logout
         </div>
       </aside>
+
+      {/* Backdrop for mobile menu */}
+      {isMenuOpen && <div className="sidebar-backdrop" onClick={() => setIsMenuOpen(false)}></div>}
 
       {/* Main Content */}
       <main className="profile-main-content">

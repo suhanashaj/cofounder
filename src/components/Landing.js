@@ -1,17 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/landing.css";
 
 function Landing() {
     const navigate = useNavigate();
     const isLoggedIn = sessionStorage.getItem("loggedInUser");
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
         <div className="landing-wrapper">
             {/* Navbar */}
             <nav className="landing-nav">
-                <div className="nav-logo">Cofounder.</div>
-                <div className="nav-auth-btns">
+                <div className="nav-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>Cofounder.</div>
+
+                {/* Mobile Menu Toggle */}
+                <div className="landing-mobile-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                    {isMenuOpen ? "✕" : "☰"}
+                </div>
+
+                <div className={`nav-auth-btns ${isMenuOpen ? "active" : ""}`}>
                     {isLoggedIn ? (
                         <button className="btn-primary" onClick={() => navigate("/welcome")}>Go to Dashboard</button>
                     ) : (
@@ -22,6 +29,9 @@ function Landing() {
                     )}
                 </div>
             </nav>
+
+            {/* Backdrop for mobile menu */}
+            {isMenuOpen && <div className="landing-backdrop" onClick={() => setIsMenuOpen(false)}></div>}
 
             {/* Hero Section */}
             <header className="hero-section">
@@ -121,13 +131,6 @@ function Landing() {
                             </div>
                         </div>
                         <div className="mockup-content">
-                            <div className="profile-preview">
-                                <div className="preview-avatar"></div>
-                                <div className="preview-info">
-                                    <div className="preview-line long"></div>
-                                    <div className="preview-line short"></div>
-                                </div>
-                            </div>
                             <div className="skill-tags">
                                 <span className="tag">React</span>
                                 <span className="tag">Python</span>

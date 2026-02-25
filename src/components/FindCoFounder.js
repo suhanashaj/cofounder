@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, sendConnectionRequest, getConnectionRequests, getCurrentUserProfile } from "../utils/api";
+import { getUsers, sendConnectionRequest, getConnectionRequests, getCurrentUserProfile, logout } from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import "../css/dashboard.css";
 
@@ -12,6 +12,7 @@ function FindCoFounder() {
   const [myConnections, setMyConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ skill: "", domain: "" });
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Professional avatar URLs to check for watermark
   const professionalAvatars = [
@@ -116,34 +117,39 @@ function FindCoFounder() {
   }
 
   return (
-    <div className="dashboard-wrapper" style={{ display: "block", background: "var(--primary-bg)" }}>
-      {/* Simple Header for Explore Mode */}
-      <nav style={{
-        padding: "20px 8%",
-        background: "rgba(2, 6, 23, 0.7)",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-        borderBottom: "1px solid var(--border-glass)"
-      }}>
-        <div className="sidebar-logo" style={{ marginBottom: 0, cursor: "pointer" }} onClick={() => navigate("/")}>Cofounder.</div>
-        <div>
-          {username ? (
-            <button className="action-btn" onClick={() => navigate("/welcome")} style={{ padding: "8px 20px", fontSize: "0.9rem" }}>Dashboard</button>
-          ) : (
-            <button className="action-btn" onClick={() => navigate("/login")} style={{ padding: "8px 20px", fontSize: "0.9rem" }}>Login to Connect</button>
-          )}
+    <div className="dashboard-wrapper" style={{ display: "flex", background: "var(--primary-bg)", minHeight: "100vh" }}>
+      {/* Mobile Toggle */}
+      <button className="mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+        {isMenuOpen ? "✕" : "☰"}
+      </button>
+
+      {/* Sidebar - Consistent with other pages */}
+      <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`} style={{ position: "sticky", top: 0, height: "100vh" }}>
+        <div className="sidebar-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>Cofounder.</div>
+        <ul className="nav-menu">
+          <li className="nav-item" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
+            <span>🏠</span> Dashboard
+          </li>
+          <li className="nav-item" onClick={() => { navigate("/profile"); setIsMenuOpen(false); }}>
+            <span>👤</span> My Profile
+          </li>
+          <li className="nav-item active" onClick={() => { navigate("/find"); setIsMenuOpen(false); }}>
+            <span>🔍</span> Find Partners
+          </li>
+          <li className="nav-item" onClick={() => { navigate("/messages"); setIsMenuOpen(false); }}>
+            <span>💬</span> Messages
+          </li>
+        </ul>
+        <div className="nav-item logout-item" onClick={async () => { await logout(); navigate("/login"); }} style={{ marginTop: "auto" }}>
+          <span>🚪</span> Logout
         </div>
-      </nav>
+      </aside>
+
+      {/* Backdrop for mobile menu */}
+      {isMenuOpen && <div className="sidebar-backdrop" onClick={() => setIsMenuOpen(false)}></div>}
 
       {/* Main Content */}
-      <main className="main-content" style={{ padding: "40px 8%", maxWidth: "1400px", margin: "0 auto" }}>
+      <main className="main-content" style={{ padding: "40px", maxWidth: "100%", flexGrow: 1 }}>
         <header className="header-section" style={{ marginBottom: "30px" }}>
           <div className="welcome-text">
             <h1 style={{ fontSize: "2.5rem" }}>Expert Directory</h1>
@@ -151,8 +157,7 @@ function FindCoFounder() {
           </div>
         </header>
 
-        {/* Live Search Filters */}
-        <div style={{
+        <div className="filters-container" style={{
           display: "flex",
           gap: "24px",
           marginBottom: "48px",
@@ -161,8 +166,7 @@ function FindCoFounder() {
           borderRadius: "32px",
           boxShadow: "var(--card-shadow)",
           border: "1px solid var(--border-glass)",
-          backdropFilter: "blur(20px)",
-          flexWrap: "wrap"
+          backdropFilter: "blur(20px)"
         }}>
           <div style={{ flex: 1, minWidth: "250px" }}>
             <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", marginBottom: "12px", color: "var(--accent-color)", textTransform: "uppercase", letterSpacing: "1px" }}>Skill / Technology</label>
@@ -187,7 +191,7 @@ function FindCoFounder() {
         </div>
 
         {/* Discovery Results */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "25px" }}>
+        <div className="discovery-results-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "25px" }}>
           {results.length > 0 ? (
             results.map((user, idx) => {
               const status = getConnectionStatus(user.username);
