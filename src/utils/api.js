@@ -1,5 +1,5 @@
 import { auth, db, rtdb } from "../firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, updatePassword, setPersistence, browserSessionPersistence } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, updatePassword, setPersistence, browserSessionPersistence, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
 import { doc, setDoc, getDocs, collection, updateDoc, query, where, addDoc, serverTimestamp, getDoc, deleteDoc } from "firebase/firestore";
 
 import { ref as rtdbRef, get, child } from "firebase/database";
@@ -615,6 +615,28 @@ export const markMessagesAsRead = async (recipient, sender) => {
     return { success: true };
   } catch (error) {
     console.error("Mark read error:", error);
+    return { success: false, msg: error.message };
+  }
+};
+
+// FORGOT PASSWORD
+export const forgotPasswordAPI = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email.trim());
+    return { success: true, msg: "Password reset email sent! Check your inbox." };
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return { success: false, msg: error.message };
+  }
+};
+
+// RESET PASSWORD
+export const resetPasswordAPI = async (oobCode, newPassword) => {
+  try {
+    await confirmPasswordReset(auth, oobCode, newPassword);
+    return { success: true, msg: "Password has been reset successfully!" };
+  } catch (error) {
+    console.error("Reset password error:", error);
     return { success: false, msg: error.message };
   }
 };

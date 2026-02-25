@@ -15,6 +15,8 @@ import Features from "./components/Features";
 import Pricing from "./components/Pricing";
 import About from "./components/About";
 import Blog from "./components/Blog";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 
 function App() {
   const getUser = () => sessionStorage.getItem("loggedInUser");
@@ -36,6 +38,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/otp" element={<OTP />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected Regular User Routes */}
         <Route path="/profile" element={getUser() ? <Profile /> : <Navigate to="/login" />} />
