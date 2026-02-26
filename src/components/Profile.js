@@ -235,6 +235,9 @@ function Profile() {
           <li className="nav-item" onClick={() => { navigate("/messages"); setIsMenuOpen(false); }}>
             <span>💬</span> Messages
           </li>
+          <li className="nav-item" onClick={() => { navigate("/help-center"); setIsMenuOpen(false); }}>
+            <span>❓</span> Help Center
+          </li>
         </ul>
         <div className="nav-item logout-item" onClick={async () => { await logout(); navigate("/login"); }}>
           <span>🚪</span> Logout

@@ -139,6 +139,9 @@ function Welcome() {
               )}
             </div>
           </li>
+          <li className="nav-item" onClick={() => { navigate("/help-center"); setIsMenuOpen(false); }}>
+            <span>❓</span> Help Center
+          </li>
         </ul>
         <div className="nav-item logout-item" onClick={handleLogout}>
           <span>🚪</span> Logout

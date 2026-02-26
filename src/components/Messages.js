@@ -140,6 +140,9 @@ function Messages() {
                             )}
                         </div>
                     </li>
+                    <li className="nav-item" onClick={() => { navigate("/help-center"); setIsMenuOpen(false); }}>
+                        <span>❓</span> Help Center
+                    </li>
                 </ul>
                 <div className="nav-item logout-item" onClick={handleLogout} style={{ marginTop: "auto" }}>
                     <span>🚪</span> Logout
@@ -277,21 +280,41 @@ function Messages() {
                                     <div ref={messagesEndRef} />
                                 </div>
 
-                                <form onSubmit={handleSendMessage} style={{ padding: "32px", borderTop: "1px solid var(--border-glass)", display: "flex", gap: "16px", background: "rgba(2, 6, 23, 0.4)" }}>
-                                    <input
-                                        type="text"
+                                <form onSubmit={handleSendMessage} style={{ padding: "32px", borderTop: "1px solid var(--border-glass)", display: "flex", flexDirection: "column", gap: "16px", background: "rgba(2, 6, 23, 0.4)" }}>
+                                    <textarea
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
                                         placeholder="Secure transmission..."
-                                        style={{ flexGrow: 1, padding: "16px 24px", borderRadius: "16px", border: "1px solid var(--border-glass)", outline: "none", color: "white", background: "rgba(255, 255, 255, 0.05)", fontSize: "1rem", transition: "all 0.3s" }}
+                                        style={{
+                                            width: "100%",
+                                            minHeight: "100px",
+                                            padding: "20px 24px",
+                                            borderRadius: "16px",
+                                            border: "1px solid var(--border-glass)",
+                                            outline: "none",
+                                            color: "white",
+                                            background: "rgba(255, 255, 255, 0.05)",
+                                            fontSize: "1rem",
+                                            transition: "all 0.3s",
+                                            resize: "none",
+                                            lineHeight: "1.5"
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleSendMessage(e);
+                                            }
+                                        }}
                                     />
-                                    <button
-                                        type="submit"
-                                        disabled={!newMessage.trim()}
-                                        style={{ padding: "0 32px", background: "var(--accent-color)", color: "white", border: "none", borderRadius: "16px", cursor: "pointer", fontWeight: "900", letterSpacing: "1px", fontSize: "0.8rem" }}
-                                    >
-                                        SEND
-                                    </button>
+                                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                        <button
+                                            type="submit"
+                                            disabled={!newMessage.trim()}
+                                            style={{ padding: "12px 32px", background: "var(--accent-color)", color: "white", border: "none", borderRadius: "16px", cursor: "pointer", fontWeight: "900", letterSpacing: "1px", fontSize: "0.8rem" }}
+                                        >
+                                            SEND TRANSMISSION
+                                        </button>
+                                    </div>
                                 </form>
                             </>
                         ) : (

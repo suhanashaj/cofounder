@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUsers, approveUserAPI, rejectUserAPI, getAllConnections, logout } from "../utils/api";
+import { db } from "../firebase";
+import { collection, getDocs, updateDoc, doc, query, orderBy } from "firebase/firestore";
 import "../css/dashboard.css";
 
 function Admin() {
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
     const [connections, setConnections] = useState([]);
+    const [helpMessages, setHelpMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("analytics");
     const [categoryView, setCategoryView] = useState(null); // Array of users to show in modal
@@ -58,13 +61,42 @@ function Admin() {
 
     const fetchData = async () => {
         setLoading(true);
-        const [userData, connectionData] = await Promise.all([
-            getUsers(),
-            getAllConnections()
-        ]);
-        setUsers(userData);
-        setConnections(connectionData);
-        setLoading(false);
+        try {
+            const [userData, connectionData] = await Promise.all([
+                getUsers(),
+                getAllConnections()
+            ]);
+            setUsers(userData);
+            setConnections(connectionData);
+
+            // Fetch Help Center Messages
+            const q = query(collection(db, "helpMessages"), orderBy("timestamp", "desc"));
+            const querySnapshot = await getDocs(q);
+            const messages = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setHelpMessages(messages);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleMarkAsRead = async (messageId) => {
+        try {
+            const messageRef = doc(db, "helpMessages", messageId);
+            await updateDoc(messageRef, { status: "read" });
+
+            // Update local state
+            setHelpMessages(prev => prev.map(msg =>
+                msg.id === messageId ? { ...msg, status: "read" } : msg
+            ));
+        } catch (error) {
+            console.error("Error marking message as read:", error);
+            alert("Failed to update status.");
+        }
     };
 
     const handleApprove = async (username, type) => {
@@ -117,6 +149,12 @@ function Admin() {
                     >
                         <span>🛡️</span> Verifications
                     </li>
+                    <li
+                        className={`nav-item ${activeTab === "messages" ? "active" : ""}`}
+                        onClick={() => setActiveTab("messages")}
+                    >
+                        <span>✉️</span> Help Center
+                    </li>
                 </ul>
                 <div className="nav-item logout-item" onClick={handleLogout}>
                     <span>🚪</span> Logout
@@ -126,11 +164,19 @@ function Admin() {
             <main className="main-content">
                 <header className="header-section">
                     <div className="welcome-text">
-                        <h1>{activeTab === "analytics" ? "Platform Analytics" : "User Verifications"}</h1>
+                        <h1>
+                            {activeTab === "analytics"
+                                ? "Platform Analytics"
+                                : activeTab === "messages"
+                                    ? "Help Center Messages"
+                                    : "User Verifications"}
+                        </h1>
                         <p>
                             {activeTab === "analytics"
                                 ? "Monitor platform growth and user engagement."
-                                : "Review and verify co-founder certifications."}
+                                : activeTab === "messages"
+                                    ? "Manage incoming support and help requests."
+                                    : "Review and verify co-founder certifications."}
                         </p>
                     </div>
                 </header>
@@ -173,6 +219,83 @@ function Admin() {
                             <div className="stat-label">Pending Approval</div>
                         </div>
                     </section>
+                ) : activeTab === "messages" ? (
+                    <div className="progress-section" style={{ padding: "0" }}>
+                        <h2 style={{ padding: "30px 30px 10px", fontSize: "1.2rem" }}>Help Center Messages</h2>
+                        <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                                <thead>
+                                    <tr style={{ borderBottom: "1px solid var(--border-glass)", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                                        <th style={{ padding: "15px 30px" }}>NAME & EMAIL</th>
+                                        <th style={{ padding: "15px 30px" }}>SUBJECT</th>
+                                        <th style={{ padding: "15px 30px" }}>MESSAGE</th>
+                                        <th style={{ padding: "15px 30px" }}>DATE</th>
+                                        <th style={{ padding: "15px 30px" }}>STATUS</th>
+                                        <th style={{ padding: "15px 30px" }}>ACTION</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {helpMessages.length > 0 ? helpMessages.map((msg, idx) => (
+                                        <tr key={idx} style={{ borderBottom: "1px solid var(--border-glass)", opacity: msg.status === 'read' ? 0.7 : 1 }}>
+                                            <td style={{ padding: "20px 30px" }}>
+                                                <div>
+                                                    <strong style={{ display: "block" }}>{msg.name}</strong>
+                                                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{msg.email}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: "20px 30px" }}>
+                                                <span style={{ fontWeight: "600" }}>{msg.subject}</span>
+                                            </td>
+                                            <td style={{ padding: "20px 30px", maxWidth: "300px" }}>
+                                                <p style={{
+                                                    margin: 0,
+                                                    fontSize: "0.85rem",
+                                                    color: "var(--text-main)",
+                                                    whiteSpace: "nowrap",
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis"
+                                                }} title={msg.message}>
+                                                    {msg.message}
+                                                </p>
+                                            </td>
+                                            <td style={{ padding: "20px 30px", whiteSpace: "nowrap", fontSize: "0.85rem" }}>
+                                                {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleString() : "Recently"}
+                                            </td>
+                                            <td style={{ padding: "20px 30px" }}>
+                                                <span style={{
+                                                    padding: "4px 10px",
+                                                    backgroundColor: msg.status === 'unread' ? "#fff7ed" : "#f0fdf4",
+                                                    color: msg.status === 'unread' ? "#c2410c" : "#15803d",
+                                                    borderRadius: "15px",
+                                                    fontSize: "0.75rem",
+                                                    fontWeight: "600"
+                                                }}>
+                                                    {msg.status}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: "20px 30px" }}>
+                                                {msg.status === 'unread' && (
+                                                    <button
+                                                        className="action-btn"
+                                                        onClick={() => handleMarkAsRead(msg.id)}
+                                                        style={{ padding: "6px 12px", fontSize: "0.75rem" }}
+                                                    >
+                                                        Mark Read
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: "var(--text-muted)" }}>
+                                                {loading ? "Loading messages..." : "No help messages found."}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 ) : (
                     <div className="progress-section" style={{ padding: "0" }}>
                         <h2 style={{ padding: "30px 30px 10px", fontSize: "1.2rem" }}>Pending Verifications</h2>
@@ -228,7 +351,6 @@ function Admin() {
                                                 </span>
                                             </td>
 
-                                            {/* CERTIFICATE COLUMN */}
                                             <td style={{ padding: "20px 30px" }}>
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
                                                     {user.certificateUrl ? (
@@ -271,7 +393,6 @@ function Admin() {
                                                 </div>
                                             </td>
 
-                                            {/* PROFILE COLUMN */}
                                             <td style={{ padding: "20px 30px" }}>
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
                                                     {user.profileApproved ? (

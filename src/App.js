@@ -17,6 +17,7 @@ import About from "./components/About";
 import Blog from "./components/Blog";
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
+import HelpCenter from "./components/HelpCenter";
 
 function App() {
   const getUser = () => sessionStorage.getItem("loggedInUser");
@@ -53,6 +54,7 @@ function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/about" element={<About />} />
         <Route path="/blog" element={<Blog />} />
+        <Route path="/help-center" element={<HelpCenter />} />
 
         {/* Catch-all Route */}
         <Route path="*" element={<Navigate to="/" />} />

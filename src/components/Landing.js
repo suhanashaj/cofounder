@@ -131,10 +131,20 @@ function Landing() {
                             </div>
                         </div>
                         <div className="mockup-content">
-                            <div className="skill-tags">
-                                <span className="tag">React</span>
-                                <span className="tag">Python</span>
-                                <span className="tag">AI/ML</span>
+                            <div className="profile-preview">
+                                <div className="preview-avatar"></div>
+                            </div>
+                            <div className="preview-info">
+                                <div className="preview-name">Alex Chen</div>
+                                <div className="preview-role">Co-Founder</div>
+                                <div className="preview-bio">
+                                    Passionate builder at the intersection of AI and product design.
+                                </div>
+                                <div className="skill-tags">
+                                    <span className="tag">React</span>
+                                    <span className="tag">Python</span>
+                                    <span className="tag">AI/ML</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -171,7 +181,7 @@ function Landing() {
                         <div className="footer-column">
                             <h4>Resources</h4>
                             <span className="footer-link-span" onClick={() => navigate("/blog")}>Blog</span>
-                            <a href="#help">Help Center</a>
+                            <span className="footer-link-span" onClick={() => navigate("/help-center")}>Help Center</span>
                             <a href="#contact">Contact</a>
                         </div>
                         <div className="footer-column">
