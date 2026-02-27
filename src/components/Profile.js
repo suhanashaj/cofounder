@@ -7,7 +7,7 @@ function Profile() {
   const username = sessionStorage.getItem("loggedInUser");
 
   const [profile, setProfile] = useState({
-    skills: "",
+    skills: [],
     domain: "",
     experience: "",
     availability: "",
@@ -23,7 +23,12 @@ function Profile() {
     linkedin: "",
     github: "",
     about: "",
+    skillsCertificate: null,
+    skillsCertificateUrl: "",
+    skillsCertificateStatus: "",
+    verifiedSkills: [],
   });
+  const [skillInput, setSkillInput] = useState("");
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -46,11 +51,25 @@ function Profile() {
       try {
         const res = await getCurrentUserProfile();
         if (res.success) {
+          // Handle migration from string to array if necessary
+          let skillsData = res.data.skills;
+          if (typeof skillsData === 'string') {
+            skillsData = skillsData.split(',').map(s => s.trim()).filter(s => s).map(s => ({
+              name: s,
+              status: 'unverified'
+            }));
+          } else if (!skillsData) {
+            skillsData = [];
+          }
+
           setProfile(prev => ({
             ...prev,
             ...res.data,
+            skills: skillsData,
             certificate: prev.certificate,
-            profilePic: prev.profilePic
+            profilePic: prev.profilePic,
+            skillsCertificate: prev.skillsCertificate,
+            verifiedSkills: res.data.verifiedSkills || []
           }));
         }
       } catch (error) {
@@ -98,6 +117,8 @@ function Profile() {
         } else if (field === 'certificate') {
           // Update preview URL for certificate (if there was a preview field)
           setProfile(prev => ({ ...prev, certificateUrl: reader.result }));
+        } else if (field === 'skillsCertificate') {
+          setProfile(prev => ({ ...prev, skillsCertificateUrl: reader.result }));
         }
 
         // Clear error for the field
@@ -115,6 +136,40 @@ function Profile() {
 
   const selectAvatar = (url) => {
     setProfile(prev => ({ ...prev, profilePic: null, profilePicUrl: url }));
+  };
+
+  const addSkill = (e) => {
+    if (e.key === 'Enter' || e.type === 'click') {
+      e.preventDefault();
+      const newSkill = skillInput.trim();
+      if (newSkill && !profile.skills.find(s => s.name.toLowerCase() === newSkill.toLowerCase())) {
+        setProfile(prev => ({
+          ...prev,
+          skills: [...prev.skills, { name: newSkill, status: 'unverified', verified: false }]
+        }));
+        setSkillInput("");
+      }
+    }
+  };
+
+  const removeSkill = (index) => {
+    setProfile(prev => ({
+      ...prev,
+      skills: prev.skills.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSkillFileChange = (e, index) => {
+    const file = e.target.files[0];
+    if (file) {
+      const updatedSkills = [...profile.skills];
+      updatedSkills[index] = {
+        ...updatedSkills[index],
+        certificateFile: file,
+        status: 'pending' // Visual indicator it's ready to upload
+      };
+      setProfile(prev => ({ ...prev, skills: updatedSkills }));
+    }
   };
 
   const [passwordData, setPasswordData] = useState({ current: "", new: "" });
@@ -152,8 +207,8 @@ function Profile() {
       newErrors.fullName = "Full Name is mandatory";
     }
 
-    if (!profile.skills || profile.skills.trim() === "") {
-      newErrors.skills = "Skill is mandatory";
+    if (profile.skills.length === 0) {
+      newErrors.skills = "At least one skill is mandatory";
     }
 
     if (!profile.domain || profile.domain.trim() === "") {
@@ -505,17 +560,122 @@ function Profile() {
 
               <h3>Professional Details</h3>
               <div className="form-grid">
-                <div className="form-group">
-                  <label>Skills <span className="required-star">*</span></label>
-                  <input
-                    name="skills"
-                    placeholder="e.g. React, Python, Marketing"
-                    value={profile.skills}
-                    onChange={handleChange}
-                    className={errors.skills ? "input-error" : ""}
-                  />
-                  {errors.skills && <span className="error-message">{errors.skills}</span>}
+                <div className="form-group full-width">
+                  <label>Skills (Press Enter to add) <span className="required-star">*</span></label>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "15px", marginTop: "10px" }}>
+                    <input
+                      placeholder="Add a skill (e.g. React, Python)"
+                      value={skillInput}
+                      onChange={(e) => setSkillInput(e.target.value)}
+                      onKeyDown={addSkill}
+                      className={errors.skills ? "input-error" : ""}
+                      style={{
+                        flex: 12,
+                        padding: "20px 25px",
+                        fontSize: "1.25rem",
+                        background: "rgba(255, 255, 255, 0.05)",
+                        color: "white",
+                        minHeight: "64px",
+                        border: "1px solid var(--border-glass)",
+                        width: "100%"
+                      }}
+                    />
+                    <button
+                      onClick={addSkill}
+                      style={{
+                        flex: 1,
+                        background: "var(--accent-color)",
+                        border: "none",
+                        color: "white",
+                        padding: "0 15px",
+                        borderRadius: "12px",
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                        fontWeight: "800",
+                        whiteSpace: "nowrap",
+                        height: "64px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "80px"
+                      }}
+                    >
+                      ADD
+                    </button>
+                  </div>
+
+                  {errors.skills && <span className="error-message" style={{ display: "block", marginBottom: "10px" }}>{errors.skills}</span>}
+
+                  {/* Skills Grid */}
+                  <div className="skills-verification-grid" style={{
+                    display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "15px"
+                  }}>
+                    {profile.skills.map((skill, index) => (
+                      <div key={index} style={{
+                        background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-glass)",
+                        borderRadius: "16px", padding: "15px", display: "flex", flexDirection: "column", gap: "10px"
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontWeight: "700", color: "white" }}>{skill.name}</span>
+                            {skill.verified ? (
+                              <span title="Verified" style={{ color: "#10b981" }}>✅</span>
+                            ) : skill.status === 'pending' ? (
+                              <span title="Verification Pending" style={{ color: "#f59e0b" }}>⏳</span>
+                            ) : null}
+                          </div>
+                          <button
+                            onClick={() => removeSkill(index)}
+                            style={{
+                              background: "none", border: "none", color: "#ef4444",
+                              cursor: "pointer", fontSize: "1.2rem", padding: "0"
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <label
+                            className="skill-upload-btn"
+                            style={{
+                              fontSize: "0.75rem", padding: "8px 12px", border: "1px dashed var(--accent-color)",
+                              borderRadius: "8px", cursor: "pointer", color: "var(--accent-color)", fontWeight: "600",
+                              flex: 1, textAlign: "center", transition: "all 0.3s"
+                            }}
+                          >
+                            {skill.certificateUrl ? "Update Proof" : skill.certificateFile ? "File Ready" : "📜 Upload Proof"}
+                            <input
+                              type="file"
+                              style={{ display: "none" }}
+                              onChange={(e) => handleSkillFileChange(e, index)}
+                              accept=".pdf,image/*"
+                            />
+                          </label>
+                          {skill.certificateUrl && (
+                            <a
+                              href={skill.certificateUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                color: "var(--accent-color)", textDecoration: "none",
+                                fontSize: "0.75rem", fontWeight: "600"
+                              }}
+                            >
+                              View ↗
+                            </a>
+                          )}
+                        </div>
+                        {skill.rejectionReason && (
+                          <div style={{ fontSize: "0.7rem", color: "#ef4444", fontStyle: "italic" }}>
+                            Rejected: {skill.rejectionReason}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
+
                 <div className="form-group">
                   <label>Domain <span className="required-star">*</span></label>
                   <input

@@ -8,7 +8,6 @@ function Notifications() {
     const username = sessionStorage.getItem("loggedInUser");
     const [opportunities, setOpportunities] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [userData, setUserData] = useState(null);
     const [myConnections, setMyConnections] = useState([]);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -19,8 +18,25 @@ function Notifications() {
                 getCurrentUserProfile(),
                 getConnectionRequests(username)
             ]);
-            setOpportunities(opps);
-            if (profile.success) setUserData(profile.data);
+
+            let filteredOpps = opps;
+            if (profile.success && profile.data) {
+                const extractSkills = (s) => {
+                    if (Array.isArray(s)) return s.map(skill => skill.name.toLowerCase());
+                    if (typeof s === 'string') return s.toLowerCase().split(',').map(item => item.trim()).filter(item => item);
+                    return [];
+                };
+                const userSkills = extractSkills(profile.data.skills);
+
+                filteredOpps = opps.filter(opp => {
+                    if (opp.username === username) return true;
+                    if (!opp.skills) return true;
+                    const oppSkills = opp.skills.toLowerCase().split(',').map(s => s.trim());
+                    return oppSkills.some(skill => userSkills.includes(skill));
+                });
+            }
+
+            setOpportunities(filteredOpps);
             setMyConnections(connections);
             setLoading(false);
         };

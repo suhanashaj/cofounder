@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts, getConnectionCount, postOpportunity } from "../utils/api";
+import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts, getConnectionCount, postOpportunity, getUsers, getAllConnections, sendConnectionRequest } from "../utils/api";
 import "../css/dashboard.css";
 
 function Welcome() {
@@ -15,24 +15,89 @@ function Welcome() {
   const [statusText, setStatusText] = useState("");
   const [requiredSkills, setRequiredSkills] = useState("");
   const [isPosting, setIsPosting] = useState(false);
-
+  const [suggestions, setSuggestions] = useState([]);
+  const [isConnecting, setIsConnecting] = useState({});
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchDashboardData = async () => {
       if (username) {
         try {
           // Parallel execution for faster loading
-          const [, profileResult, countResult] = await Promise.all([
+          const [, profileResult, countResult, allUsers, allConns] = await Promise.all([
             syncEmailVerification(),
             getCurrentUserProfile(),
-            getConnectionCount(username)
+            getConnectionCount(username),
+            getUsers(),
+            getAllConnections()
           ]);
 
           if (profileResult.success) {
             setUserData(profileResult.data);
+
+            // Calculate Suggestions
+            if (allUsers && allUsers.length > 0) {
+              const currentUser = profileResult.data;
+              const extractSkills = (s) => {
+                if (Array.isArray(s)) return s.map(skill => skill.name.toLowerCase());
+                if (typeof s === 'string') return s.toLowerCase().split(',').map(item => item.trim()).filter(item => item);
+                return [];
+              };
+              const mySkills = extractSkills(currentUser.skills);
+
+              // Get my friends (accepted status)
+              const myFriends = new Set();
+              allConns.forEach(conn => {
+                if (conn.status === 'accepted') {
+                  if (conn.from === username) myFriends.add(conn.to);
+                  if (conn.to === username) myFriends.add(conn.from);
+                }
+              });
+
+              // Also get my pending requests to hide them
+              const pendingOrSent = new Set();
+              allConns.forEach(conn => {
+                if (conn.from === username || conn.to === username) {
+                  if (conn.from === username) pendingOrSent.add(conn.to);
+                  if (conn.to === username) pendingOrSent.add(conn.from);
+                }
+              });
+
+              const rankedSuggestions = allUsers
+                .filter(u => u.username !== username && !pendingOrSent.has(u.username))
+                .map(u => {
+                  const uSkills = extractSkills(u.skills);
+                  const sharedSkills = mySkills.filter(s => uSkills.includes(s));
+
+                  // Calculate mutual friends
+                  let mutualFriendsCount = 0;
+                  const uFriends = new Set();
+                  allConns.forEach(conn => {
+                    if (conn.status === 'accepted') {
+                      if (conn.from === u.username) uFriends.add(conn.to);
+                      if (conn.to === u.username) uFriends.add(conn.from);
+                    }
+                  });
+
+                  uFriends.forEach(f => {
+                    if (myFriends.has(f)) mutualFriendsCount++;
+                  });
+
+                  return {
+                    ...u,
+                    score: (sharedSkills.length * 2) + (mutualFriendsCount * 3),
+                    mutualCount: mutualFriendsCount,
+                    sharedSkills: sharedSkills
+                  };
+                })
+                .filter(u => u.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 4);
+
+              setSuggestions(rankedSuggestions);
+            }
           }
           setConnectionCount(countResult);
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.error("Error fetching dashboard data:", error);
         }
       }
       setLoading(false);
@@ -43,10 +108,22 @@ function Welcome() {
       setLoading(false);
     }, 3000);
 
-    fetchUserData();
+    fetchDashboardData();
 
     return () => clearTimeout(loadingTimeout);
   }, [username]);
+
+  const handleConnect = async (targetUser) => {
+    setIsConnecting(prev => ({ ...prev, [targetUser]: true }));
+    const res = await sendConnectionRequest(username, targetUser);
+    if (res.success) {
+      alert("Connection request sent!");
+      setSuggestions(prev => prev.filter(u => u.username !== targetUser));
+    } else {
+      alert("Error: " + res.msg);
+    }
+    setIsConnecting(prev => ({ ...prev, [targetUser]: false }));
+  };
 
   // Poll for unread messages - reduced frequency
   useEffect(() => {
@@ -194,12 +271,17 @@ function Welcome() {
                 {userData?.about || "No bio added yet. Go to Profile to introduce yourself!"}
               </div>
 
-              <div className="skills-container">
-                {userData?.skills && userData.skills.trim().length > 0 ? (
-                  userData.skills.split(',').filter(s => s.trim().length > 0).map((skill, index) => (
-                    <span key={index} className="skill-pill">
-                      {skill.trim()}
+              <div className="skills-container" style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "15px" }}>
+                {Array.isArray(userData?.skills) ? (
+                  userData.skills.map((skill, index) => (
+                    <span key={index} className="skill-pill" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      {skill.name}
+                      {skill.verified && <span title="Verified Skill" style={{ color: "#10b981", fontSize: "0.8rem" }}>✅</span>}
                     </span>
+                  ))
+                ) : userData?.skills ? (
+                  userData.skills.split(',').map((skill, index) => (
+                    <span key={index} className="skill-pill">{skill.trim()}</span>
                   ))
                 ) : (
                   <span className="skill-pill" style={{ fontStyle: "italic", opacity: 0.7 }}>no skills listed</span>
@@ -208,6 +290,48 @@ function Welcome() {
             </div>
           </div>
         </div>
+
+        {/* Suggestions Section */}
+        {suggestions.length > 0 && (
+          <div className="suggestions-section" style={{ marginBottom: "40px" }}>
+            <div className="section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "white", margin: 0 }}>People You May Know</h2>
+              <span style={{ fontSize: "0.9rem", color: "var(--accent-color)", fontWeight: "600" }}>Based on your skills & connections</span>
+            </div>
+
+            <div className="suggestions-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+              {suggestions.map((user) => (
+                <div key={user.username} className="stat-card suggestion-card" style={{ padding: "20px", position: "relative", overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
+                    <img
+                      src={user.profilePicUrl || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true&size=48`}
+                      alt={user.username}
+                      style={{ width: "48px", height: "48px", borderRadius: "50%", marginRight: "12px", border: "1px solid var(--border-glass)" }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: "700", color: "white" }}>{user.fullName || user.username}</div>
+                      <div style={{ fontSize: "0.8rem", color: "var(--accent-color)" }}>{user.role || "Co-founder"}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "15px", minHeight: "2.5em" }}>
+                    {user.mutualCount > 0 && <span>👥 {user.mutualCount} mutual connections<br /></span>}
+                    {user.sharedSkills.length > 0 && <span>✨ Shared skills: {user.sharedSkills.join(', ')}</span>}
+                  </div>
+
+                  <button
+                    className="action-btn"
+                    style={{ width: "100%", padding: "10px", fontSize: "0.9rem" }}
+                    disabled={isConnecting[user.username]}
+                    onClick={() => handleConnect(user.username)}
+                  >
+                    {isConnecting[user.username] ? "CONNECTING..." : "CONNECT"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Founder Post Section */}
         {userData?.role?.toLowerCase() === "founder" && (

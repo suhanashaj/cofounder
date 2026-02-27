@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getUsers, approveUserAPI, rejectUserAPI, getAllConnections, logout } from "../utils/api";
+import { getUsers, approveUserAPI, rejectUserAPI, getAllConnections, logout, verifySpecificSkillAPI } from "../utils/api";
 import { db } from "../firebase";
 import { collection, getDocs, updateDoc, doc, query, orderBy } from "firebase/firestore";
 import "../css/dashboard.css";
@@ -13,6 +13,7 @@ function Admin() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("analytics");
     const [categoryView, setCategoryView] = useState(null); // Array of users to show in modal
+    const [selectedUserSkills, setSelectedUserSkills] = useState(null);
     const [categoryName, setCategoryName] = useState("");
 
     const viewCategory = (type) => {
@@ -115,6 +116,20 @@ function Admin() {
             if (res.success) {
                 fetchData();
             }
+        }
+    };
+
+    const handleVerifySpecificSkill = async (username, skillName, status) => {
+        let reason = "";
+        if (status === 'rejected') {
+            reason = window.prompt(`Reason for rejecting ${skillName}:`) || "Invalid proof";
+        }
+
+        const res = await verifySpecificSkillAPI(username, skillName, status, reason);
+        alert(res.msg);
+        if (res.success) {
+            // Update local user data to reflect change immediately if possible, or just re-fetch
+            fetchData();
         }
     };
 
@@ -295,6 +310,120 @@ function Admin() {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                ) : activeTab === "skills" ? (
+                    <div className="progress-section" style={{ padding: "30px" }}>
+                        <h2>Skill Verification Requests</h2>
+                        <div className="admin-skills-grid" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px", marginTop: "20px" }}>
+                            {users.filter(u => Array.isArray(u.skills) && u.skills.some(s => s.status === 'pending')).map(user => (
+                                <div key={user.username} className="stat-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                                        <img
+                                            src={user.profilePicUrl || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff`}
+                                            alt={user.username}
+                                            style={{ width: "50px", height: "50px", borderRadius: "50%" }}
+                                        />
+                                        <div>
+                                            <div style={{ fontWeight: "800", fontSize: "1.1rem" }}>{user.fullName || user.username}</div>
+                                            <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                                                {user.skills.filter(s => s.status === 'pending').length} pending skill(s)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        className="action-btn"
+                                        onClick={() => setSelectedUserSkills(user)}
+                                    >
+                                        Review Skills
+                                    </button>
+                                </div>
+                            ))}
+                            {users.filter(u => Array.isArray(u.skills) && u.skills.some(s => s.status === 'pending')).length === 0 && (
+                                <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "40px" }}>No pending skill verifications.</p>
+                            )}
+                        </div>
+
+                        {selectedUserSkills && (
+                            <div className="modal-overlay" style={{
+                                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                                background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100,
+                                backdropFilter: 'blur(10px)'
+                            }}>
+                                <div className="modal-content" style={{
+                                    width: '800px', background: 'var(--card-bg)', padding: '40px', borderRadius: '32px',
+                                    border: '1px solid var(--border-glass)', boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+                                    maxHeight: '90vh', overflowY: 'auto'
+                                }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+                                        <h2>Skills Review: {selectedUserSkills.fullName || selectedUserSkills.username}</h2>
+                                        <button onClick={() => setSelectedUserSkills(null)} style={{ background: "none", border: "none", color: "white", fontSize: "1.5rem", cursor: "pointer" }}>✕</button>
+                                    </div>
+
+                                    <div className="skills-admin-list" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                                        {selectedUserSkills.skills.filter(s => s.status === 'pending' || s.certificateUrl).map((skill, idx) => (
+                                            <div key={idx} style={{
+                                                padding: "20px", background: "rgba(255,255,255,0.03)", borderRadius: "20px",
+                                                border: "1px solid var(--border-glass)", display: "flex", justifyContent: "space-between", alignItems: "center"
+                                            }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "5px" }}>
+                                                        <span style={{ fontWeight: "700", fontSize: "1.1rem" }}>{skill.name}</span>
+                                                        <span style={{
+                                                            fontSize: "0.7rem", padding: "2px 8px", borderRadius: "10px",
+                                                            background: skill.status === 'pending' ? "#f59e0b" : skill.status === 'approved' ? "#10b981" : "#ef4444",
+                                                            color: "white", textTransform: "uppercase", fontWeight: "800"
+                                                        }}>
+                                                            {skill.status}
+                                                        </span>
+                                                    </div>
+                                                    {skill.certificateUrl ? (
+                                                        <a
+                                                            href={skill.certificateUrl}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            style={{ color: "var(--accent-color)", textDecoration: "none", fontSize: "0.9rem", fontWeight: "600" }}
+                                                        >
+                                                            View Evidence Document ↗
+                                                        </a>
+                                                    ) : (
+                                                        <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>No document uploaded</span>
+                                                    )}
+                                                </div>
+
+                                                {skill.status === 'pending' && (
+                                                    <div style={{ display: "flex", gap: "10px" }}>
+                                                        <button
+                                                            className="action-btn"
+                                                            style={{ backgroundColor: "#10b981", padding: "8px 16px" }}
+                                                            onClick={() => handleVerifySpecificSkill(selectedUserSkills.username, skill.name, 'approved')}
+                                                        >
+                                                            Verify
+                                                        </button>
+                                                        <button
+                                                            className="action-btn"
+                                                            style={{ backgroundColor: "#ef4444", padding: "8px 16px" }}
+                                                            onClick={() => handleVerifySpecificSkill(selectedUserSkills.username, skill.name, 'rejected')}
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div style={{ marginTop: "40px", textAlign: "right" }}>
+                                        <button
+                                            className="action-btn"
+                                            style={{ background: "none", border: "1px solid var(--border-glass)" }}
+                                            onClick={() => setSelectedUserSkills(null)}
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="progress-section" style={{ padding: "0" }}>

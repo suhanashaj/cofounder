@@ -61,11 +61,18 @@ function FindCoFounder() {
   }, [username]);
 
   useEffect(() => {
+    const extractSkills = (s) => {
+      if (Array.isArray(s)) return s.map(skill => skill.name.toLowerCase());
+      if (typeof s === 'string') return s.toLowerCase().split(',').map(item => item.trim()).filter(item => item);
+      return [];
+    };
+
     const filtered = users.filter(u => {
       if (u.username === username) return false;
       if (!u.verified || !u.certificateApproved) return false;
 
-      const matchesSkill = !filters.skill || u.skills?.toLowerCase().includes(filters.skill.toLowerCase());
+      const userSkillNames = extractSkills(u.skills);
+      const matchesSkill = !filters.skill || userSkillNames.some(s => s.includes(filters.skill.toLowerCase()));
       const matchesDomain = !filters.domain || u.domain?.toLowerCase().includes(filters.domain.toLowerCase());
 
       return matchesSkill && matchesDomain;
@@ -241,7 +248,14 @@ function FindCoFounder() {
                     </div>
 
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "20px" }}>
-                      {(user.skills || "").split(',').filter(s => s.trim() !== "").map((skill, i) => (
+                      {Array.isArray(user.skills) ? (
+                        user.skills.map((skill, i) => (
+                          <span key={i} style={{ padding: "4px 12px", backgroundColor: "rgba(99, 102, 241, 0.1)", color: "#818cf8", borderRadius: "8px", fontSize: "0.7rem", fontWeight: "800", border: "1px solid rgba(129, 140, 248, 0.2)" }}>
+                            {skill.name}
+                            {skill.verified && " ✅"}
+                          </span>
+                        ))
+                      ) : (user.skills || "").split(',').filter(s => s.trim() !== "").map((skill, i) => (
                         <span key={i} style={{ padding: "4px 12px", backgroundColor: "rgba(99, 102, 241, 0.1)", color: "#818cf8", borderRadius: "8px", fontSize: "0.7rem", fontWeight: "800", border: "1px solid rgba(129, 140, 248, 0.2)" }}>{skill.trim()}</span>
                       ))}
                     </div>

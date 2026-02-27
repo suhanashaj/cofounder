@@ -249,8 +249,35 @@ export const saveProfileAPI = async (username, profileData) => {
       profilePicUrl = uploadRes.url;
     }
 
+    // Handle legacy single skill certificate (keep for compatibility if needed, but UI will move away)
+    let skillsCertificateUrl = profileData.skillsCertificateUrl || "";
+    if (profileData.skillsCertificate && profileData.skillsCertificate instanceof File) {
+      const uploadRes = await uploadToGDrive(profileData.skillsCertificate, username, role);
+      skillsCertificateUrl = uploadRes.url;
+      profileData.skillsCertificateStatus = 'approved'; // Single certificate approved logic
+    }
+
+    // New Per-Skill Verification logic
+    if (Array.isArray(profileData.skills)) {
+      for (let i = 0; i < profileData.skills.length; i++) {
+        const skill = profileData.skills[i];
+        if (skill.certificateFile && skill.certificateFile instanceof File) {
+          try {
+            const uploadRes = await uploadToGDrive(skill.certificateFile, username, role);
+            skill.certificateUrl = uploadRes.url;
+            skill.status = 'pending';
+            // Remove the temporary file object before saving to Firestore
+            delete skill.certificateFile;
+          } catch (uploadErr) {
+            console.error(`Error uploading certificate for ${skill.name}:`, uploadErr);
+          }
+        }
+      }
+    }
+
     const userRef = doc(db, "users", uid);
-    const { certificate, profilePic, ...dataToSave } = profileData;
+    // Remove the temporary fields from the object being saved to Firestore
+    const { certificate, profilePic, skillsCertificate, ...dataToSave } = profileData;
 
     console.log("Saving to Firestore...", { ...dataToSave, certificateUrl, profilePicUrl });
 
@@ -258,6 +285,7 @@ export const saveProfileAPI = async (username, profileData) => {
       ...dataToSave,
       certificateUrl,
       profilePicUrl,
+      skillsCertificateUrl,
       username: username
     }, { merge: true });
 
@@ -414,7 +442,12 @@ export const approveUserAPI = async (username, type = 'certificate') => {
     const userRef = doc(db, "users", snapshot.docs[0].id);
     const updateData = type === 'profile'
       ? { profileApproved: true, profileRejected: false }
-      : { certificateApproved: true, certificateRejected: false };
+      : type === 'skills'
+        ? { skillsCertificateStatus: 'approved', skillsCertificateRejected: false }
+        : { certificateApproved: true, certificateRejected: false };
+
+    // If skills, we might want to handle setting verifiedSkills separately or just mark the certificate as approved
+    // Based on user request, admin will select which skills to verify. I'll add a separate API for that.
 
     await updateDoc(userRef, updateData);
 
@@ -448,7 +481,9 @@ export const rejectUserAPI = async (username, type = 'certificate', reason = "")
     const userRef = doc(db, "users", snapshot.docs[0].id);
     const updateData = type === 'profile'
       ? { profileApproved: false, profileRejected: true }
-      : { certificateApproved: false, certificateRejected: true };
+      : type === 'skills'
+        ? { skillsCertificateStatus: 'rejected', skillsCertificateRejected: true, skillsCertificateRejectionReason: reason }
+        : { certificateApproved: false, certificateRejected: true };
 
     await updateDoc(userRef, updateData);
 
@@ -828,5 +863,58 @@ export const getOpportunities = async () => {
   } catch (error) {
     console.error("Get opportunities error:", error);
     return [];
+  }
+};
+
+// VERIFY SPECIFIC SKILL
+export const verifySpecificSkillAPI = async (username, skillName, status, reason = "") => {
+  try {
+    await ensureAuthReady();
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("username", "==", username));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const userDoc = snapshot.docs[0];
+      const userData = userDoc.data();
+      const userRef = doc(db, "users", userDoc.id);
+
+      if (Array.isArray(userData.skills)) {
+        const updatedSkills = userData.skills.map(s => {
+          if (s.name === skillName) {
+            return {
+              ...s,
+              status: status, // 'approved' or 'rejected'
+              verified: status === 'approved',
+              rejectionReason: reason
+            };
+          }
+          return s;
+        });
+
+        await updateDoc(userRef, { skills: updatedSkills });
+
+        // Send notification message
+        try {
+          const messagesRef = collection(db, "messages");
+          await addDoc(messagesRef, {
+            from: "Admin",
+            to: username,
+            text: `Verification for your skill "${skillName}" has been ${status}.${reason ? ' Reason: ' + reason : ''}`,
+            read: false,
+            timestamp: serverTimestamp()
+          });
+        } catch (msgErr) {
+          console.error("Error sending verification message:", msgErr);
+        }
+
+        return { success: true, msg: `Skill ${skillName} ${status}` };
+      }
+      return { success: false, msg: "User skills data is not in the correct format" };
+    }
+    return { success: false, msg: "User not found" };
+  } catch (error) {
+    console.error("Verify specific skill error:", error);
+    return { success: false, msg: error.message };
   }
 };
