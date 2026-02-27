@@ -282,6 +282,17 @@
   margin-top: 2px;
 }
 
+/* Back Button in Messages */
+.back-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  transform: translateX(-2px);
+  border-color: var(--accent-color) !important;
+}
+
 /* Action Banner */
 .action-banner {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(168, 85, 247, 0.8) 100%);

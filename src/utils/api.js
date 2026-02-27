@@ -784,3 +784,49 @@ export const removeDuplicatesAPI = async () => {
     return { success: false, msg: error.message };
   }
 };
+// POST OPPORTUNITY (For Founders looking for partners)
+export const postOpportunity = async (username, role, text, skills) => {
+  try {
+    const user = await ensureAuthReady();
+    if (!user) return { success: false, msg: "User not authenticated" };
+
+    const opportunitiesRef = collection(db, "opportunities");
+    await addDoc(opportunitiesRef, {
+      username,
+      role,
+      text,
+      skills,
+      timestamp: serverTimestamp(),
+      userId: user.uid
+    });
+    return { success: true, msg: "Opportunity posted!" };
+  } catch (error) {
+    console.error("Post opportunity error:", error);
+    return { success: false, msg: error.message };
+  }
+};
+
+// GET OPPORTUNITIES
+export const getOpportunities = async () => {
+  try {
+    await ensureAuthReady();
+    const opportunitiesRef = collection(db, "opportunities");
+    // Sort by most recent
+    const q = query(opportunitiesRef); // Note: For ordering, we might need a composite index or just sort client-side
+    const snapshot = await getDocs(q);
+    let list = [];
+    snapshot.forEach(docSnap => list.push({ id: docSnap.id, ...docSnap.data() }));
+
+    // Client side sort (safest without creating indices manually)
+    list.sort((a, b) => {
+      const t1 = a.timestamp ? (a.timestamp.seconds || 0) : 0;
+      const t2 = b.timestamp ? (b.timestamp.seconds || 0) : 0;
+      return t2 - t1;
+    });
+
+    return list;
+  } catch (error) {
+    console.error("Get opportunities error:", error);
+    return [];
+  }
+};

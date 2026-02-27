@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts, getConnectionCount } from "../utils/api";
+import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts, getConnectionCount, postOpportunity } from "../utils/api";
 import "../css/dashboard.css";
 
 function Welcome() {
@@ -12,6 +12,9 @@ function Welcome() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [connectionCount, setConnectionCount] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [statusText, setStatusText] = useState("");
+  const [requiredSkills, setRequiredSkills] = useState("");
+  const [isPosting, setIsPosting] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -139,6 +142,9 @@ function Welcome() {
               )}
             </div>
           </li>
+          <li className="nav-item" onClick={() => { navigate("/inbox"); setIsMenuOpen(false); }}>
+            <span>📥</span> Inbox
+          </li>
           <li className="nav-item" onClick={() => { navigate("/help-center"); setIsMenuOpen(false); }}>
             <span>❓</span> Help Center
           </li>
@@ -202,6 +208,51 @@ function Welcome() {
             </div>
           </div>
         </div>
+
+        {/* Founder Post Section */}
+        {userData?.role?.toLowerCase() === "founder" && (
+          <div className="stat-card" style={{ marginBottom: "40px", padding: "32px", borderRadius: "32px", background: "linear-gradient(rgba(99, 102, 241, 0.05), rgba(168, 85, 247, 0.05))" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "800", marginBottom: "10px", color: "white" }}>Find Your Perfect Co-founder</h2>
+            <p style={{ color: "var(--text-muted)", marginBottom: "24px" }}>Post what you're looking for. All potential co-founders will be notified.</p>
+
+            <textarea
+              placeholder="I am looking for a partner for my startup who can help with..."
+              value={statusText}
+              onChange={(e) => setStatusText(e.target.value)}
+              className="about-text"
+              style={{ width: "100%", background: "rgba(0,0,0,0.2)", borderRadius: "16px", padding: "20px", border: "1px solid var(--border-glass)", color: "white", minHeight: "120px", marginBottom: "20px", fontSize: "1rem" }}
+            />
+
+            <input
+              type="text"
+              placeholder="Required Skills (e.g. React, UX Design, Marketing)"
+              value={requiredSkills}
+              onChange={(e) => setRequiredSkills(e.target.value)}
+              className="about-text"
+              style={{ width: "100%", background: "rgba(0,0,0,0.2)", borderRadius: "16px", padding: "12px 20px", border: "1px solid var(--border-glass)", color: "white", marginBottom: "24px" }}
+            />
+
+            <button
+              className="action-btn"
+              style={{ width: "100%", padding: "16px" }}
+              disabled={isPosting || !statusText.trim()}
+              onClick={async () => {
+                setIsPosting(true);
+                const res = await postOpportunity(username, userData.role, statusText, requiredSkills);
+                if (res.success) {
+                  alert("Opportunity posted! Everyone will see this in their Inbox.");
+                  setStatusText("");
+                  setRequiredSkills("");
+                } else {
+                  alert("Failed to post: " + res.msg);
+                }
+                setIsPosting(false);
+              }}
+            >
+              {isPosting ? "TRANSMITTING..." : "POST OPPORTUNITY"}
+            </button>
+          </div>
+        )}
 
         {/* Stats Section */}
         <section className="stats-grid">

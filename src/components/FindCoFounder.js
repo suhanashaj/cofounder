@@ -139,6 +139,9 @@ function FindCoFounder() {
           <li className="nav-item" onClick={() => { navigate("/messages"); setIsMenuOpen(false); }}>
             <span>💬</span> Messages
           </li>
+          <li className="nav-item" onClick={() => { navigate("/inbox"); setIsMenuOpen(false); }}>
+            <span>📥</span> Inbox
+          </li>
           <li className="nav-item" onClick={() => { navigate("/help-center"); setIsMenuOpen(false); }}>
             <span>❓</span> Help Center
           </li>

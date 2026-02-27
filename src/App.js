@@ -18,6 +18,7 @@ import Blog from "./components/Blog";
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import HelpCenter from "./components/HelpCenter";
+import Notifications from "./components/Notifications";
 
 function App() {
   const getUser = () => sessionStorage.getItem("loggedInUser");
@@ -47,6 +48,7 @@ function App() {
         <Route path="/find" element={<FindCoFounder />} />
         <Route path="/welcome" element={getUser() ? <Welcome /> : <Navigate to="/login" />} />
         <Route path="/messages" element={getUser() ? <Messages /> : <Navigate to="/login" />} />
+        <Route path="/inbox" element={getUser() ? <Notifications /> : <Navigate to="/login" />} />
 
         {/* Protected Admin Route */}
         <Route path="/admin" element={isAdmin() ? <Admin /> : <Navigate to="/welcome" />} />
