@@ -158,11 +158,20 @@ export const getProfileAPI = async (username) => {
 };
 
 // Helper to convert Drive viewer link to direct image link
-const getDirectDriveLink = (url) => {
+// Helper to convert Drive viewer link to direct image link (Reliable format)
+export const getDirectDriveLink = (url) => {
   if (!url) return url;
+  let fileId = "";
   if (url.includes("drive.google.com/file/d/")) {
-    const fileId = url.split("/d/")[1]?.split("/")[0];
-    if (fileId) return `https://drive.google.com/uc?export=view&id=${fileId}`;
+    fileId = url.split("/d/")[1]?.split("/")[0];
+  } else if (url.includes("drive.google.com/uc?")) {
+    const params = new URLSearchParams(url.split("?")[1]);
+    fileId = params.get("id");
+  }
+
+  if (fileId) {
+    // lh3 format is much more reliable for display in <img> tags than drive.google.com/uc
+    return `https://lh3.googleusercontent.com/d/${fileId}`;
   }
   return url;
 };
@@ -243,10 +252,22 @@ export const saveProfileAPI = async (username, profileData) => {
       certificateUrl = uploadRes.url;
     }
 
+    let cvUrl = profileData.cvUrl || "";
+    if (profileData.cvFile && profileData.cvFile instanceof File) {
+      const uploadRes = await uploadToGDrive(profileData.cvFile, username, role);
+      cvUrl = uploadRes.url;
+    }
+
     let profilePicUrl = profileData.profilePicUrl || "";
     if (profileData.profilePic && profileData.profilePic instanceof File) {
       const uploadRes = await uploadToGDrive(profileData.profilePic, username, role);
       profilePicUrl = uploadRes.url;
+    }
+
+    let pitchVideoUrl = profileData.pitchVideoUrl || "";
+    if (profileData.pitchVideoFile && profileData.pitchVideoFile instanceof File) {
+      const uploadRes = await uploadToGDrive(profileData.pitchVideoFile, username, role);
+      pitchVideoUrl = uploadRes.url;
     }
 
     // Handle legacy single skill certificate (keep for compatibility if needed, but UI will move away)
@@ -277,19 +298,25 @@ export const saveProfileAPI = async (username, profileData) => {
 
     const userRef = doc(db, "users", uid);
     // Remove the temporary fields from the object being saved to Firestore
-    const { certificate, profilePic, skillsCertificate, ...dataToSave } = profileData;
+    const { certificate, profilePic, skillsCertificate, cvFile, pitchVideoFile, ...dataToSave } = profileData;
 
-    console.log("Saving to Firestore...", { ...dataToSave, certificateUrl, profilePicUrl });
+    console.log("Saving to Firestore...", { ...dataToSave, certificateUrl, profilePicUrl, cvUrl, pitchVideoUrl });
 
     await setDoc(userRef, {
       ...dataToSave,
       certificateUrl,
       profilePicUrl,
       skillsCertificateUrl,
+      cvUrl,
+      pitchVideoUrl,
       username: username
     }, { merge: true });
 
-    return { success: true, msg: "Profile saved successfully!" };
+    return {
+      success: true,
+      msg: "Profile saved successfully!",
+      updatedProfilePicUrl: profilePicUrl ? getDirectDriveLink(profilePicUrl) : null
+    };
 
   } catch (err) {
     console.error("saveProfileAPI error:", err);
@@ -306,7 +333,13 @@ export const getUsers = async () => {
     const usersRef = collection(db, "users");
     const snapshot = await getDocs(usersRef);
     let users = [];
-    snapshot.forEach(docSnap => users.push(docSnap.data()));
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.profilePicUrl) {
+        data.profilePicUrl = getDirectDriveLink(data.profilePicUrl);
+      }
+      users.push(data);
+    });
     return users;
   } catch (error) {
     console.error("Get users error:", error);

@@ -18,6 +18,13 @@ body {
     overflow-x: hidden;
 }
 
+/* Allow full-screen pages to override body's flex centering */
+body.full-screen-page {
+    display: block;
+    align-items: stretch;
+    justify-content: stretch;
+}
+
 /* =========================
    CARD CONTAINER (AUTH)
 ========================= */

@@ -27,19 +27,26 @@ function Profile() {
     skillsCertificateUrl: "",
     skillsCertificateStatus: "",
     verifiedSkills: [],
+    // CV Specific Sections
+    education: { degree: "", institution: "", year: "" },
+    workExperience: { company: "", role: "", duration: "", description: "" },
+    isFresher: false,
+    projects: { title: "", link: "", description: "" },
+    cvFile: null,
+    cvUrl: "",
+    // Founder Specific Fields
+    companyName: "",
+    startupIdea: "",
+    startupStage: "",
+    pitchVideoFile: null,
+    pitchVideoUrl: "",
+    lookingFor: "",
+    otherLookingFor: "",
+    requiredSkills: "",
   });
   const [skillInput, setSkillInput] = useState("");
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const professionalAvatars = [
-    "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop"
-  ];
 
   const [errors, setErrors] = useState({});
 
@@ -47,6 +54,9 @@ function Profile() {
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
+    // Apply full-screen class to body for this page
+    document.body.classList.add("full-screen-page");
+
     const fetchProfile = async () => {
       try {
         const res = await getCurrentUserProfile();
@@ -66,10 +76,23 @@ function Profile() {
             ...prev,
             ...res.data,
             skills: skillsData,
+            education: Array.isArray(res.data.education) ? (res.data.education[0] || { degree: "", institution: "", year: "" }) : (res.data.education || { degree: "", institution: "", year: "" }),
+            workExperience: Array.isArray(res.data.workExperience) ? (res.data.workExperience[0] || { company: "", role: "", duration: "", description: "" }) : (res.data.workExperience || { company: "", role: "", duration: "", description: "" }),
+            isFresher: res.data.isFresher || false,
+            projects: Array.isArray(res.data.projects) ? (res.data.projects[0] || { title: "", link: "", description: "" }) : (res.data.projects || { title: "", link: "", description: "" }),
+            cvUrl: res.data.cvUrl || "",
             certificate: prev.certificate,
             profilePic: prev.profilePic,
             skillsCertificate: prev.skillsCertificate,
-            verifiedSkills: res.data.verifiedSkills || []
+            verifiedSkills: res.data.verifiedSkills || [],
+            // Founder fields
+            companyName: res.data.companyName || "",
+            startupIdea: res.data.startupIdea || "",
+            startupStage: res.data.startupStage || "",
+            pitchVideoUrl: res.data.pitchVideoUrl || "",
+            lookingFor: res.data.lookingFor || "",
+            otherLookingFor: res.data.otherLookingFor || "",
+            requiredSkills: res.data.requiredSkills || "",
           }));
         }
       } catch (error) {
@@ -86,7 +109,10 @@ function Profile() {
 
     fetchProfile();
 
-    return () => clearTimeout(loadingTimeout);
+    return () => {
+      clearTimeout(loadingTimeout);
+      document.body.classList.remove("full-screen-page");
+    };
   }, [username]);
 
   const handleChange = (e) => {
@@ -134,9 +160,6 @@ function Profile() {
     }
   };
 
-  const selectAvatar = (url) => {
-    setProfile(prev => ({ ...prev, profilePic: null, profilePicUrl: url }));
-  };
 
   const addSkill = (e) => {
     if (e.key === 'Enter' || e.type === 'click') {
@@ -172,6 +195,44 @@ function Profile() {
     }
   };
 
+  const handleEducationUpdate = (field, value) => {
+    setProfile(prev => ({
+      ...prev,
+      education: { ...prev.education, [field]: value }
+    }));
+
+    // Clear error for the field being edited
+    const errorKey = field === 'degree' ? 'educationDegree' : field === 'institution' ? 'educationInstitution' : null;
+    if (errorKey && errors[errorKey]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleExperienceUpdate = (field, value) => {
+    setProfile(prev => ({
+      ...prev,
+      workExperience: { ...prev.workExperience, [field]: value }
+    }));
+  };
+
+  const handleProjectUpdate = (field, value) => {
+    setProfile(prev => ({
+      ...prev,
+      projects: { ...prev.projects, [field]: value }
+    }));
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfile(prev => ({ ...prev, pitchVideoFile: file }));
+    }
+  };
+
   const [passwordData, setPasswordData] = useState({ current: "", new: "" });
 
   const handlePasswordUpdate = async () => {
@@ -201,14 +262,13 @@ function Profile() {
       return;
     }
 
-    // Mandatory fields validation
+    // Mandatory fields validation for both
     const newErrors = {};
+    const isCoFounder = profile.role?.toLowerCase() === "co-founder" || profile.role?.toLowerCase() === "cofounder";
+    const isFounder = profile.role?.toLowerCase() === "founder";
+
     if (!profile.fullName || profile.fullName.trim() === "") {
       newErrors.fullName = "Full Name is mandatory";
-    }
-
-    if (profile.skills.length === 0) {
-      newErrors.skills = "At least one skill is mandatory";
     }
 
     if (!profile.domain || profile.domain.trim() === "") {
@@ -223,6 +283,25 @@ function Profile() {
       newErrors.availability = "Availability is mandatory";
     }
 
+    // Role-specific validation
+    if (isCoFounder) {
+      if (profile.skills.length === 0) {
+        newErrors.skills = "At least one skill is mandatory";
+      }
+      if (!profile.education?.degree || profile.education.degree.trim() === "") {
+        newErrors.educationDegree = "Degree is mandatory";
+      }
+      if (!profile.education?.institution || profile.education.institution.trim() === "") {
+        newErrors.educationInstitution = "Institution is mandatory";
+      }
+    }
+
+    if (isFounder) {
+      if (!profile.startupIdea || profile.startupIdea.trim() === "") {
+        newErrors.startupIdea = "Startup Idea Description is mandatory";
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       alert("Please fill in all mandatory fields (marked with *)");
@@ -234,7 +313,10 @@ function Profile() {
       const data = await saveProfileAPI(username, profile);
       alert(data.msg);
       // Sync sessionStorage if profile pic was updated
-      if (profile.profilePicUrl) {
+      if (data.updatedProfilePicUrl) {
+        setProfile(prev => ({ ...prev, profilePicUrl: data.updatedProfilePicUrl }));
+        sessionStorage.setItem("userProfilePic", data.updatedProfilePicUrl);
+      } else if (profile.profilePicUrl) {
         sessionStorage.setItem("userProfilePic", profile.profilePicUrl);
       }
     } catch (err) {
@@ -327,25 +409,6 @@ function Profile() {
                   className="profile-avatar-img"
                   alt="Avatar"
                 />
-                {/* Show AVATAR watermark if using pre-selected avatar */}
-                {profile.profilePicUrl && professionalAvatars.includes(profile.profilePicUrl) && (
-                  <div style={{
-                    position: "absolute",
-                    bottom: "8px",
-                    right: "8px",
-                    background: "rgba(0, 0, 0, 0.75)",
-                    color: "white",
-                    padding: "4px 10px",
-                    borderRadius: "6px",
-                    fontSize: "0.65rem",
-                    fontWeight: "800",
-                    letterSpacing: "1px",
-                    backdropFilter: "blur(4px)",
-                    border: "1px solid rgba(255, 255, 255, 0.2)"
-                  }}>
-                    AVATAR
-                  </div>
-                )}
               </div>
               <h3>{profile.fullName || username}</h3>
               <p style={{ color: "var(--text-muted)", marginBottom: "15px" }}>{profile.role || "Founder"}</p>
@@ -355,31 +418,6 @@ function Profile() {
               </div>
 
               <div style={{ marginTop: "30px", width: "100%" }}>
-                <h4 style={{ fontSize: "0.8rem", color: "var(--accent-color)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "15px", textAlign: "left" }}>Professional Avatars</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "20px" }}>
-                  {professionalAvatars.map((url, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => selectAvatar(url)}
-                      style={{
-                        width: "100%",
-                        paddingBottom: "100%",
-                        borderRadius: "12px",
-                        backgroundImage: `url(${url})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        cursor: "pointer",
-                        border: profile.profilePicUrl === url ? "3px solid var(--accent-color)" : "2px solid transparent",
-                        boxShadow: profile.profilePicUrl === url ? "0 0 15px var(--accent-glow)" : "none",
-                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                        transform: profile.profilePicUrl === url ? "scale(0.95)" : "none",
-                        opacity: profile.profilePicUrl === url ? 1 : 0.6
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.transform = "scale(1.05)"; }}
-                      onMouseLeave={(e) => { if (profile.profilePicUrl !== url) { e.currentTarget.style.opacity = 0.6; e.currentTarget.style.transform = "none"; } }}
-                    />
-                  ))}
-                </div>
 
                 {/* Upload Your Own Photo Option */}
                 <label
@@ -420,82 +458,144 @@ function Profile() {
                   />
                 </label>
 
-                <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "15px", textAlign: "left" }}>
-                  Verification Document
-                </h4>
+                {/* Verification Document (Only for Co-Founders) */}
+                {(profile.role?.toLowerCase() === "co-founder" || profile.role?.toLowerCase() === "cofounder") && (
+                  <>
+                    <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "15px", textAlign: "left" }}>
+                      Verification Document
+                    </h4>
 
-                {/* Certificate Preview/Status Area */}
-                {(profile.certificate || profile.certificateUrl) && (
-                  <div style={{
-                    marginBottom: "15px",
-                    padding: "15px",
-                    background: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid var(--border-glass)",
-                    borderRadius: "16px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px"
-                  }}>
-                    <div style={{
-                      width: "50px",
-                      height: "50px",
-                      background: "rgba(99, 102, 241, 0.1)",
-                      borderRadius: "10px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "1.5rem"
-                    }}>
-                      {profile.certificateUrl?.toLowerCase().endsWith('.pdf') || (profile.certificate instanceof File && profile.certificate.type === 'application/pdf') ? '📄' : '🖼️'}
-                    </div>
-                    <div style={{ textAlign: "left" }}>
-                      <p style={{ fontSize: "0.85rem", fontWeight: "700", marginBottom: "2px" }}>
-                        {profile.certificateUrl ? "Certificate Uploaded" : "New Document Ready"}
-                      </p>
-                      <a
-                        href={profile.certificateUrl || "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ fontSize: "0.75rem", color: "var(--accent-color)", textDecoration: "none", fontWeight: "600" }}
-                        onClick={(e) => !profile.certificateUrl && e.preventDefault()}
-                      >
-                        {profile.certificateUrl ? "View Document ↗" : "Preview Pending Save"}
-                      </a>
-                    </div>
-                  </div>
+                    {/* Certificate Preview/Status Area */}
+                    {(profile.certificate || profile.certificateUrl) && (
+                      <div style={{
+                        marginBottom: "15px",
+                        padding: "15px",
+                        background: "rgba(255, 255, 255, 0.03)",
+                        border: "1px solid var(--border-glass)",
+                        borderRadius: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px"
+                      }}>
+                        <div style={{
+                          width: "50px",
+                          height: "50px",
+                          background: "rgba(99, 102, 241, 0.1)",
+                          borderRadius: "10px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "1.5rem"
+                        }}>
+                          {profile.certificateUrl?.toLowerCase().endsWith('.pdf') || (profile.certificate instanceof File && profile.certificate.type === 'application/pdf') ? '📄' : '🖼️'}
+                        </div>
+                        <div style={{ textAlign: "left" }}>
+                          <p style={{ fontSize: "0.85rem", fontWeight: "700", marginBottom: "2px" }}>
+                            {profile.certificateUrl ? "Certificate Uploaded" : "New Document Ready"}
+                          </p>
+                          <a
+                            href={profile.certificateUrl || "#"}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ fontSize: "0.75rem", color: "var(--accent-color)", textDecoration: "none", fontWeight: "600" }}
+                            onClick={(e) => !profile.certificateUrl && e.preventDefault()}
+                          >
+                            {profile.certificateUrl ? "View Document ↗" : "Preview Pending Save"}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    <label
+                      className="file-upload-label"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        width: "100%",
+                        padding: "14px",
+                        background: "var(--primary-bg)",
+                        border: "1px solid var(--border-glass)",
+                        borderRadius: "14px",
+                        cursor: "pointer",
+                        transition: "all 0.3s",
+                        fontSize: "0.9rem",
+                        fontWeight: "600"
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-color)"; e.currentTarget.style.background = "rgba(99, 102, 241, 0.05)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-glass)"; e.currentTarget.style.background = "var(--primary-bg)"; }}
+                    >
+                      <span>📤</span> {profile.certificateUrl ? "Replace Certificate" : "Upload Certificate"}
+                      <input
+                        type="file"
+                        onChange={(e) => handleFileChange(e, "certificate")}
+                        style={{ display: "none" }}
+                        accept=".pdf,image/*"
+                      />
+                    </label>
+                    <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "10px", fontStyle: "italic" }}>
+                      Upload a PDF or Image of your professional certificate for verification.
+                    </p>
+                  </>
                 )}
 
-                <label
-                  className="file-upload-label"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "10px",
-                    width: "100%",
-                    padding: "14px",
-                    background: "var(--primary-bg)",
-                    border: "1px solid var(--border-glass)",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.3s",
-                    fontSize: "0.9rem",
-                    fontWeight: "600"
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-color)"; e.currentTarget.style.background = "rgba(99, 102, 241, 0.05)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-glass)"; e.currentTarget.style.background = "var(--primary-bg)"; }}
-                >
-                  <span>📤</span> {profile.certificateUrl ? "Replace Certificate" : "Upload Certificate"}
-                  <input
-                    type="file"
-                    onChange={(e) => handleFileChange(e, "certificate")}
-                    style={{ display: "none" }}
-                    accept=".pdf,image/*"
-                  />
-                </label>
-                <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "10px", fontStyle: "italic" }}>
-                  Upload a PDF or Image of your professional certificate for verification.
-                </p>
+                {/* CV UPLOAD SECTION (Only for Co-Founders) */}
+                {(profile.role?.toLowerCase() === "co-founder" || profile.role?.toLowerCase() === "cofounder") && (
+                  <>
+                    <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", margin: "25px 0 15px", textAlign: "left" }}>
+                      CV / Resume (Optional)
+                    </h4>
+
+                    {profile.cvUrl && (
+                      <div style={{
+                        marginBottom: "15px",
+                        padding: "12px",
+                        background: "rgba(16, 185, 129, 0.05)",
+                        border: "1px solid rgba(16, 185, 129, 0.2)",
+                        borderRadius: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px"
+                      }}>
+                        <span style={{ fontSize: "1.2rem" }}>📄</span>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: "0.75rem", fontWeight: "700", margin: 0, color: "white" }}>CV Uploaded</p>
+                          <a href={profile.cvUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "#10b981", textDecoration: "none", fontWeight: "600" }}>View CV ↗</a>
+                        </div>
+                      </div>
+                    )}
+
+                    <label
+                      className="file-upload-label"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        width: "100%",
+                        padding: "12px",
+                        background: "var(--primary-bg)",
+                        border: "1px solid var(--border-glass)",
+                        borderRadius: "12px",
+                        cursor: "pointer",
+                        transition: "all 0.3s",
+                        fontSize: "0.85rem",
+                        fontWeight: "600"
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-color)"; e.currentTarget.style.background = "rgba(99, 102, 241, 0.05)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-glass)"; e.currentTarget.style.background = "var(--primary-bg)"; }}
+                    >
+                      <span>📎</span> {profile.cvFile ? (profile.cvFile.name.length > 20 ? profile.cvFile.name.substring(0, 20) + "..." : profile.cvFile.name) : (profile.cvUrl ? "Replace CV" : "Upload CV")}
+                      <input
+                        type="file"
+                        onChange={(e) => handleFileChange(e, "cvFile")}
+                        style={{ display: "none" }}
+                        accept=".pdf,.doc,.docx"
+                      />
+                    </label>
+                  </>
+                )}
               </div>
             </div>
 
@@ -560,145 +660,121 @@ function Profile() {
 
               <h3>Professional Details</h3>
               <div className="form-grid">
-                <div className="form-group full-width">
-                  <label>Skills (Press Enter to add) <span className="required-star">*</span></label>
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "15px", marginTop: "10px" }}>
-                    <input
-                      placeholder="Add a skill (e.g. React, Python)"
-                      value={skillInput}
-                      onChange={(e) => setSkillInput(e.target.value)}
-                      onKeyDown={addSkill}
-                      className={errors.skills ? "input-error" : ""}
-                      style={{
-                        flex: 12,
-                        padding: "20px 25px",
-                        fontSize: "1.25rem",
-                        background: "rgba(255, 255, 255, 0.05)",
-                        color: "white",
-                        minHeight: "64px",
-                        border: "1px solid var(--border-glass)",
-                        width: "100%"
-                      }}
-                    />
-                    <button
-                      onClick={addSkill}
-                      style={{
-                        flex: 1,
-                        background: "var(--accent-color)",
-                        border: "none",
-                        color: "white",
-                        padding: "0 15px",
-                        borderRadius: "12px",
-                        fontSize: "0.8rem",
-                        cursor: "pointer",
-                        fontWeight: "800",
-                        whiteSpace: "nowrap",
-                        height: "64px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        minWidth: "80px"
-                      }}
-                    >
-                      ADD
-                    </button>
-                  </div>
-
-                  {errors.skills && <span className="error-message" style={{ display: "block", marginBottom: "10px" }}>{errors.skills}</span>}
-
-                  {/* Skills Grid */}
-                  <div className="skills-verification-grid" style={{
-                    display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "15px"
-                  }}>
-                    {profile.skills.map((skill, index) => (
-                      <div key={index} style={{
-                        background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-glass)",
-                        borderRadius: "16px", padding: "15px", display: "flex", flexDirection: "column", gap: "10px"
-                      }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "700", color: "white" }}>{skill.name}</span>
-                            {skill.verified ? (
-                              <span title="Verified" style={{ color: "#10b981" }}>✅</span>
-                            ) : skill.status === 'pending' ? (
-                              <span title="Verification Pending" style={{ color: "#f59e0b" }}>⏳</span>
-                            ) : null}
+                {(profile.role?.toLowerCase() === "co-founder" || profile.role?.toLowerCase() === "cofounder") ? (
+                  <>
+                    <div className="form-group full-width">
+                      <label>Skills <span className="required-star">*</span></label>
+                      <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "15px", marginTop: "10px" }}>
+                        <input
+                          placeholder="Add a skill (e.g. React, Python)"
+                          value={skillInput}
+                          onChange={(e) => setSkillInput(e.target.value)}
+                          onKeyDown={addSkill}
+                          className={errors.skills ? "input-error" : ""}
+                          style={{
+                            flex: 12, padding: "20px 25px", fontSize: "1.25rem",
+                            background: "rgba(255, 255, 255, 0.05)", color: "white",
+                            minHeight: "64px", border: "1px solid var(--border-glass)", width: "100%"
+                          }}
+                        />
+                        <button onClick={addSkill} style={{
+                          flex: 1, background: "var(--accent-color)", border: "none", color: "white", padding: "0 15px",
+                          borderRadius: "12px", fontSize: "0.8rem", cursor: "pointer", fontWeight: "800", height: "64px"
+                        }}>ADD</button>
+                      </div>
+                      {errors.skills && <span className="error-message" style={{ display: "block", marginBottom: "10px" }}>{errors.skills}</span>}
+                      <div className="skills-verification-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "15px" }}>
+                        {profile.skills.map((skill, index) => (
+                          <div key={index} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-glass)", borderRadius: "16px", padding: "15px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontWeight: "700", color: "white" }}>{skill.name} {skill.verified ? "✅" : skill.status === 'pending' ? "⏳" : ""}</span>
+                              <button onClick={() => removeSkill(index)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.2rem" }}>×</button>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <label style={{ fontSize: "0.75rem", padding: "8px 12px", border: "1px dashed var(--accent-color)", borderRadius: "8px", cursor: "pointer", color: "var(--accent-color)", fontWeight: "600", flex: 1, textAlign: "center" }}>
+                                {skill.certificateUrl ? "Update Proof" : skill.certificateFile ? "File Ready" : "📜 Upload Proof"}
+                                <input type="file" style={{ display: "none" }} onChange={(e) => handleSkillFileChange(e, index)} accept=".pdf,image/*" />
+                              </label>
+                              {skill.certificateUrl && <a href={skill.certificateUrl} target="_blank" rel="noreferrer" style={{ color: "var(--accent-color)", textDecoration: "none", fontSize: "0.75rem" }}>View ↗</a>}
+                            </div>
                           </div>
-                          <button
-                            onClick={() => removeSkill(index)}
-                            style={{
-                              background: "none", border: "none", color: "#ef4444",
-                              cursor: "pointer", fontSize: "1.2rem", padding: "0"
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <label
-                            className="skill-upload-btn"
-                            style={{
-                              fontSize: "0.75rem", padding: "8px 12px", border: "1px dashed var(--accent-color)",
-                              borderRadius: "8px", cursor: "pointer", color: "var(--accent-color)", fontWeight: "600",
-                              flex: 1, textAlign: "center", transition: "all 0.3s"
-                            }}
-                          >
-                            {skill.certificateUrl ? "Update Proof" : skill.certificateFile ? "File Ready" : "📜 Upload Proof"}
-                            <input
-                              type="file"
-                              style={{ display: "none" }}
-                              onChange={(e) => handleSkillFileChange(e, index)}
-                              accept=".pdf,image/*"
-                            />
-                          </label>
-                          {skill.certificateUrl && (
-                            <a
-                              href={skill.certificateUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{
-                                color: "var(--accent-color)", textDecoration: "none",
-                                fontSize: "0.75rem", fontWeight: "600"
-                              }}
-                            >
-                              View ↗
-                            </a>
-                          )}
-                        </div>
-                        {skill.rejectionReason && (
-                          <div style={{ fontSize: "0.7rem", color: "#ef4444", fontStyle: "italic" }}>
-                            Rejected: {skill.rejectionReason}
-                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Industry Domain <span className="required-star">*</span></label>
+                      <input name="domain" placeholder="e.g. Fintech, Edtech" value={profile.domain} onChange={handleChange} className={errors.domain ? "input-error" : ""} />
+                      {errors.domain && <span className="error-message">{errors.domain}</span>}
+                    </div>
+                    <div className="form-group">
+                      <label>Experience (Years)</label>
+                      <input name="experience" type="number" value={profile.experience} onChange={handleChange} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="form-group">
+                      <label>Company Name</label>
+                      <input name="companyName" value={profile.companyName} onChange={handleChange} placeholder="startup name (if any)" />
+                    </div>
+                    <div className="form-group">
+                      <label>Industry / Domain <span className="required-star">*</span></label>
+                      <input name="domain" value={profile.domain} onChange={handleChange} placeholder="e.g. Fintech, Edtech" className={errors.domain ? "input-error" : ""} />
+                      {errors.domain && <span className="error-message">{errors.domain}</span>}
+                    </div>
+                    <div className="form-group full-width">
+                      <label>Startup Idea Description <span className="required-star">*</span></label>
+                      <textarea name="startupIdea" value={profile.startupIdea} onChange={handleChange} placeholder="What vision are you building?" rows="4" className={errors.startupIdea ? "input-error" : ""} />
+                    </div>
+                    <div className="form-group">
+                      <label>Stage of Startup</label>
+                      <select name="startupStage" value={profile.startupStage} onChange={handleChange}>
+                        <option value="">Select Stage...</option>
+                        <option value="Idea">Idea Phase</option>
+                        <option value="MVP">MVP Ready</option>
+                        <option value="Revenue">Early Revenue</option>
+                        <option value="Scaling">Scaling</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Type of Co-founder Looking For</label>
+                      <select name="lookingFor" value={profile.lookingFor} onChange={handleChange}>
+                        <option value="">Select Type...</option>
+                        <option value="Technical">Technical</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Operations">Operations</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    {profile.lookingFor === 'Other' && (
+                      <div className="form-group">
+                        <label>Specify Role</label>
+                        <input name="otherLookingFor" value={profile.otherLookingFor} onChange={handleChange} placeholder="e.g. Legal Advisor" />
+                      </div>
+                    )}
+                    <div className="form-group">
+                      <label>Skills Required (from Co-founder)</label>
+                      <input name="requiredSkills" value={profile.requiredSkills} onChange={handleChange} placeholder="e.g. React, UX, Sales" />
+                    </div>
+                    <div className="form-group">
+                      <label>Pitch Video</label>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <label style={{ flex: 1, padding: "12px", border: "1px dashed var(--border-glass)", borderRadius: "12px", textAlign: "center", cursor: "pointer", fontSize: "0.85rem" }}>
+                          {profile.pitchVideoFile ? "Video Ready ✅" : "Upload Pitch Video"}
+                          <input type="file" accept="video/*" style={{ display: "none" }} onChange={handleVideoChange} />
+                        </label>
+                        {profile.pitchVideoUrl && (
+                          <a href={profile.pitchVideoUrl} target="_blank" rel="noreferrer" style={{ color: "var(--accent-color)", fontSize: "0.8rem", fontWeight: "700" }}>WATCH</a>
                         )}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  </>
+                )}
 
                 <div className="form-group">
-                  <label>Domain <span className="required-star">*</span></label>
-                  <input
-                    name="domain"
-                    placeholder="e.g. Fintech, Edtech"
-                    value={profile.domain}
-                    onChange={handleChange}
-                    className={errors.domain ? "input-error" : ""}
-                  />
-                  {errors.domain && <span className="error-message">{errors.domain}</span>}
-                </div>
-                <div className="form-group">
-                  <label>Experience (Years)</label>
-                  <input name="experience" type="number" value={profile.experience} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                  <label>Availability <span className="required-star">*</span></label>
-                  <select
-                    name="availability"
-                    value={profile.availability}
-                    onChange={handleChange}
-                    className={errors.availability ? "input-error" : ""}
-                  >
+                  <label>{profile.role === 'Founder' ? 'Startup Availability' : 'Availability'} <span className="required-star">*</span></label>
+                  <select name="availability" value={profile.availability} onChange={handleChange} className={errors.availability ? "input-error" : ""}>
                     <option value="">Select...</option>
                     <option value="Full-time">Full-time</option>
                     <option value="Part-time">Part-time</option>
@@ -707,6 +783,102 @@ function Profile() {
                   {errors.availability && <span className="error-message">{errors.availability}</span>}
                 </div>
               </div>
+
+              {/* CV SECTIONS (Only for Co-Founders) */}
+              {(profile.role?.toLowerCase() === "co-founder" || profile.role?.toLowerCase() === "cofounder") && (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                    <h3 style={{ margin: 0 }}>Education</h3>
+                  </div>
+                  <div className="cv-item-card" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-glass)", borderRadius: "16px", padding: "20px", marginBottom: "15px" }}>
+                    <div className="form-grid">
+                      <div className="form-group">
+                        <label>Degree/Certification <span className="required-star">*</span></label>
+                        <input
+                          value={profile.education?.degree || ""}
+                          onChange={(e) => handleEducationUpdate("degree", e.target.value)}
+                          placeholder="e.g. B.Tech Computer Science"
+                          className={errors.educationDegree ? "input-error" : ""}
+                        />
+                        {errors.educationDegree && <span className="error-message">{errors.educationDegree}</span>}
+                      </div>
+                      <div className="form-group">
+                        <label>Institution <span className="required-star">*</span></label>
+                        <input
+                          value={profile.education?.institution || ""}
+                          onChange={(e) => handleEducationUpdate("institution", e.target.value)}
+                          placeholder="e.g. Stanford University"
+                          className={errors.educationInstitution ? "input-error" : ""}
+                        />
+                        {errors.educationInstitution && <span className="error-message">{errors.educationInstitution}</span>}
+                      </div>
+                      <div className="form-group">
+                        <label>Year</label>
+                        <input value={profile.education?.year || ""} onChange={(e) => handleEducationUpdate("year", e.target.value)} placeholder="e.g. 2018 - 2022" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", marginTop: "40px" }}>
+                    <h3 style={{ margin: 0 }}>Work Experience</h3>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600" }}>
+                      <input
+                        type="checkbox"
+                        checked={profile.isFresher}
+                        onChange={(e) => setProfile(prev => ({ ...prev, isFresher: e.target.checked }))}
+                        style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "var(--accent-color)" }}
+                      />
+                      I AM A FRESHER
+                    </label>
+                  </div>
+                  {!profile.isFresher ? (
+                    <div className="cv-item-card" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-glass)", borderRadius: "16px", padding: "20px", marginBottom: "15px" }}>
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label>Company/Project</label>
+                          <input value={profile.workExperience?.company || ""} onChange={(e) => handleExperienceUpdate("company", e.target.value)} placeholder="Name of organization" />
+                        </div>
+                        <div className="form-group">
+                          <label>Role</label>
+                          <input value={profile.workExperience?.role || ""} onChange={(e) => handleExperienceUpdate("role", e.target.value)} placeholder="e.g. Lead Developer" />
+                        </div>
+                        <div className="form-group">
+                          <label>Duration</label>
+                          <input value={profile.workExperience?.duration || ""} onChange={(e) => handleExperienceUpdate("duration", e.target.value)} placeholder="e.g. Jan 2020 - Present" />
+                        </div>
+                        <div className="form-group full-width">
+                          <label>Key Responsibilities</label>
+                          <textarea value={profile.workExperience?.description || ""} onChange={(e) => handleExperienceUpdate("description", e.target.value)} placeholder="Describe your impact..." rows="2" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="cv-item-card" style={{ background: "rgba(16, 185, 129, 0.05)", border: "1px dashed rgba(16, 185, 129, 0.3)", borderRadius: "16px", padding: "30px", marginBottom: "15px", textAlign: "center" }}>
+                      <p style={{ color: "var(--success)", fontSize: "0.9rem", fontWeight: "700", margin: 0 }}>✨ Fresher: Looking for first opportunity!</p>
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", marginTop: "40px" }}>
+                    <h3 style={{ margin: 0 }}>Portfolio / Projects</h3>
+                  </div>
+                  <div className="cv-item-card" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-glass)", borderRadius: "16px", padding: "20px", marginBottom: "15px" }}>
+                    <div className="form-grid">
+                      <div className="form-group">
+                        <label>Project Title</label>
+                        <input value={profile.projects?.title || ""} onChange={(e) => handleProjectUpdate("title", e.target.value)} placeholder="e.g. E-commerce Platform" />
+                      </div>
+                      <div className="form-group">
+                        <label>Live Link</label>
+                        <input value={profile.projects?.link || ""} onChange={(e) => handleProjectUpdate("link", e.target.value)} placeholder="github.com/... or app.link" />
+                      </div>
+                      <div className="form-group full-width">
+                        <label>Description</label>
+                        <textarea value={profile.projects?.description || ""} onChange={(e) => handleProjectUpdate("description", e.target.value)} placeholder="What did you build?" rows="2" />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <h3>Contact & Social</h3>
               <div className="form-grid">

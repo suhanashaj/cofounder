@@ -52,11 +52,18 @@ function Messages() {
     }, [username, activeChat]);
 
     useEffect(() => {
+        // Apply full-screen class to body for this page
+        document.body.classList.add("full-screen-page");
+
         const init = async () => {
             await Promise.all([fetchConnections(), fetchUnread()]);
             setLoading(false);
         };
         init();
+
+        return () => {
+            document.body.classList.remove("full-screen-page");
+        };
     }, [fetchConnections, fetchUnread]);
 
     useEffect(() => {
@@ -124,61 +131,56 @@ function Messages() {
     }
 
     return (
-        <div className="dashboard-wrapper">
-            {/* Mobile Toggle - Hide when chat is active for full screen focus */}
-            {!activeChat && (
-                <button className="mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                    {isMenuOpen ? "✕" : "☰"}
-                </button>
-            )}
+        <div className="dashboard-wrapper" style={{ display: "flex", background: "var(--primary-bg)", minHeight: "100vh" }}>
+            <button className="mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                {isMenuOpen ? "✕" : "☰"}
+            </button>
 
-            {!activeChat && (
-                <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`}>
-                    <div className="sidebar-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>Cofounder.</div>
-                    <ul className="nav-menu">
-                        <li className="nav-item" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
-                            <span style={{ fontSize: "1.2rem" }}>🏠</span> Dashboard
-                        </li>
-                        <li className="nav-item" onClick={() => { navigate("/profile"); setIsMenuOpen(false); }}>
-                            <span style={{ fontSize: "1.2rem" }}>👤</span> My Profile
-                        </li>
-                        <li className="nav-item" onClick={() => { navigate("/find"); setIsMenuOpen(false); }}>
-                            <span style={{ fontSize: "1.2rem" }}>🔍</span> Find Partners
-                        </li>
-                        <li className="nav-item active" onClick={() => { navigate("/messages"); setIsMenuOpen(false); }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
-                                <span>💬 Messages</span>
-                                {Object.values(unreadCounts).reduce((a, b) => a + b, 0) > 0 && (
-                                    <span style={{ background: "#f43f5e", color: "white", fontSize: "0.7rem", padding: "2px 8px", borderRadius: "20px", fontWeight: "900", boxShadow: "0 0 10px rgba(244, 63, 94, 0.4)" }}>
-                                        {Object.values(unreadCounts).reduce((a, b) => a + b, 0)}
-                                    </span>
-                                )}
-                            </div>
-                        </li>
-                        <li className="nav-item" onClick={() => { navigate("/inbox"); setIsMenuOpen(false); }}>
-                            <span>📥</span> Inbox
-                        </li>
-                        <li className="nav-item" onClick={() => { navigate("/help-center"); setIsMenuOpen(false); }}>
-                            <span>❓</span> Help Center
-                        </li>
-                    </ul>
-                    <div className="nav-item logout-item" onClick={handleLogout} style={{ marginTop: "auto" }}>
-                        <span>🚪</span> Logout
-                    </div>
-                </aside>
-            )}
+            <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`} style={{ position: "sticky", top: 0, height: "100vh" }}>
+                <div className="sidebar-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>Cofounder.</div>
+                <ul className="nav-menu">
+                    <li className="nav-item" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
+                        <span style={{ fontSize: "1.2rem" }}>🏠</span> Dashboard
+                    </li>
+                    <li className="nav-item" onClick={() => { navigate("/profile"); setIsMenuOpen(false); }}>
+                        <span style={{ fontSize: "1.2rem" }}>👤</span> My Profile
+                    </li>
+                    <li className="nav-item" onClick={() => { navigate("/find"); setIsMenuOpen(false); }}>
+                        <span style={{ fontSize: "1.2rem" }}>🔍</span> Find Partners
+                    </li>
+                    <li className="nav-item active" onClick={() => { navigate("/messages"); setIsMenuOpen(false); }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+                            <span>💬 Messages</span>
+                            {Object.values(unreadCounts).reduce((a, b) => a + b, 0) > 0 && (
+                                <span style={{ background: "#f43f5e", color: "white", fontSize: "0.7rem", padding: "2px 8px", borderRadius: "20px", fontWeight: "900", boxShadow: "0 0 10px rgba(244, 63, 94, 0.4)" }}>
+                                    {Object.values(unreadCounts).reduce((a, b) => a + b, 0)}
+                                </span>
+                            )}
+                        </div>
+                    </li>
+                    <li className="nav-item" onClick={() => { navigate("/inbox"); setIsMenuOpen(false); }}>
+                        <span>📥</span> Inbox
+                    </li>
+                    <li className="nav-item" onClick={() => { navigate("/help-center"); setIsMenuOpen(false); }}>
+                        <span>❓</span> Help Center
+                    </li>
+                </ul>
+                <div className="nav-item logout-item" onClick={handleLogout} style={{ marginTop: "auto" }}>
+                    <span>🚪</span> Logout
+                </div>
+            </aside>
 
             {/* Backdrop for mobile menu */}
-            {isMenuOpen && !activeChat && <div className="sidebar-backdrop" onClick={() => setIsMenuOpen(false)}></div>}
+            {isMenuOpen && <div className="sidebar-backdrop" onClick={() => setIsMenuOpen(false)}></div>}
 
             <main className="main-content" style={{
                 display: "flex",
                 flexDirection: "column",
                 height: "100vh",
-                width: activeChat ? "100vw" : "auto",
                 overflow: "hidden",
                 padding: 0,
-                maxWidth: "none"
+                maxWidth: "none",
+                flexGrow: 1
             }}>
                 {!activeChat && (
                     <header className="header-section" style={{ flexShrink: 0, padding: "40px 48px 20px" }}>
@@ -190,7 +192,7 @@ function Messages() {
                 )}
 
                 <div className="profile-grid-layout" style={{
-                    gridTemplateColumns: activeChat ? "1fr" : "380px 1fr",
+                    gridTemplateColumns: "1fr",
                     gap: activeChat ? "0" : "32px",
                     padding: activeChat ? "0" : "0 48px 48px",
                     flex: 1,
@@ -202,66 +204,70 @@ function Messages() {
 
                     {/* Left: Connections List */}
                     {!activeChat && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "24px", overflowY: "auto", height: "100%", paddingRight: "8px" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "32px", overflowY: "auto", height: "100%", paddingRight: "8px" }}>
 
                             {pendingRequests.length > 0 && (
                                 <section>
                                     <h3 style={{ fontSize: "0.8rem", color: "var(--accent-color)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "16px" }}>Inbound Requests</h3>
-                                    {pendingRequests.map((req) => (
-                                        <div key={req.id} className="stat-card" style={{ padding: "24px", marginBottom: "16px", background: "rgba(255, 255, 255, 0.03)" }}>
-                                            <div style={{ marginBottom: "20px" }}>
-                                                <strong style={{ fontSize: "1.1rem", color: "white", display: "block" }}>{req.from}</strong>
-                                                <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Discovery Network Connection</span>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
+                                        {pendingRequests.map((req) => (
+                                            <div key={req.id} className="stat-card" style={{ padding: "24px", background: "rgba(255, 255, 255, 0.03)", margin: 0 }}>
+                                                <div style={{ marginBottom: "20px" }}>
+                                                    <strong style={{ fontSize: "1.1rem", color: "white", display: "block" }}>{req.from}</strong>
+                                                    <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Discovery Network Connection</span>
+                                                </div>
+                                                <div style={{ display: "flex", gap: "12px" }}>
+                                                    <button onClick={() => handleStatusUpdate(req.id, "accepted")} style={{ flex: 1, padding: "10px", background: "var(--success)", color: "white", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: "700", fontSize: "0.8rem" }}>ACCEPT</button>
+                                                    <button onClick={() => handleStatusUpdate(req.id, "rejected")} style={{ flex: 1, padding: "10px", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "12px", cursor: "pointer", fontWeight: "700", fontSize: "0.8rem" }}>DECLINE</button>
+                                                </div>
                                             </div>
-                                            <div style={{ display: "flex", gap: "12px" }}>
-                                                <button onClick={() => handleStatusUpdate(req.id, "accepted")} style={{ flex: 1, padding: "10px", background: "var(--success)", color: "white", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: "700", fontSize: "0.8rem" }}>ACCEPT</button>
-                                                <button onClick={() => handleStatusUpdate(req.id, "rejected")} style={{ flex: 1, padding: "10px", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "12px", cursor: "pointer", fontWeight: "700", fontSize: "0.8rem" }}>DECLINE</button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </section>
                             )}
 
                             <section style={{ flexGrow: 1 }}>
                                 <h3 style={{ fontSize: "0.8rem", color: "var(--accent-color)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "16px" }}>Active Circles</h3>
                                 {acceptedMatches.length > 0 ? (
-                                    acceptedMatches.map((match) => {
-                                        const partner = match.from === username ? match.to : match.from;
-                                        const isActive = activeChat === partner;
-                                        const unreadCount = unreadCounts[partner] || 0;
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "20px" }}>
+                                        {acceptedMatches.map((match) => {
+                                            const partner = match.from === username ? match.to : match.from;
+                                            const isActive = activeChat === partner;
+                                            const unreadCount = unreadCounts[partner] || 0;
 
-                                        return (
-                                            <div
-                                                key={match.id}
-                                                className="stat-card"
-                                                onClick={() => setActiveChat(partner)}
-                                                style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    marginBottom: "12px",
-                                                    cursor: "pointer",
-                                                    backgroundColor: isActive ? "rgba(99, 102, 241, 0.15)" : "rgba(255, 255, 255, 0.02)",
-                                                    borderColor: isActive ? "var(--accent-color)" : "var(--border-glass)",
-                                                    padding: "20px"
-                                                }}
-                                            >
-                                                <div style={{ width: "52px", height: "52px", borderRadius: "16px", background: "linear-gradient(135deg, #6366f1, #a855f7)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "20px", fontWeight: "900", fontSize: "1.5rem", boxShadow: "0 8px 20px rgba(0,0,0,0.3)" }}>
-                                                    {partner[0].toUpperCase()}
-                                                </div>
-                                                <div style={{ flexGrow: 1 }}>
-                                                    <strong style={{ display: "block", color: "white", fontSize: "1.05rem", marginBottom: "4px" }}>{partner}</strong>
-                                                    <span style={{ fontSize: "0.8rem", color: unreadCount > 0 ? "#fb7185" : "var(--text-muted)", fontWeight: unreadCount > 0 ? "800" : "400" }}>
-                                                        {unreadCount > 0 ? "● NEW TRANSMISSION" : "ENCRYPTED CHANNEL"}
-                                                    </span>
-                                                </div>
-                                                {unreadCount > 0 && (
-                                                    <div style={{ background: "#f43f5e", color: "white", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: "900", boxShadow: "0 0 15px rgba(244, 63, 94, 0.5)" }}>
-                                                        {unreadCount}
+                                            return (
+                                                <div
+                                                    key={match.id}
+                                                    className="stat-card"
+                                                    onClick={() => setActiveChat(partner)}
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        cursor: "pointer",
+                                                        backgroundColor: isActive ? "rgba(99, 102, 241, 0.15)" : "rgba(255, 255, 255, 0.02)",
+                                                        borderColor: isActive ? "var(--accent-color)" : "var(--border-glass)",
+                                                        padding: "20px",
+                                                        margin: 0
+                                                    }}
+                                                >
+                                                    <div style={{ width: "52px", height: "52px", borderRadius: "16px", background: "linear-gradient(135deg, #6366f1, #a855f7)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "20px", fontWeight: "900", fontSize: "1.5rem", boxShadow: "0 8px 20px rgba(0,0,0,0.3)" }}>
+                                                        {partner[0].toUpperCase()}
                                                     </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })
+                                                    <div style={{ flexGrow: 1 }}>
+                                                        <strong style={{ display: "block", color: "white", fontSize: "1.05rem", marginBottom: "4px" }}>{partner}</strong>
+                                                        <span style={{ fontSize: "0.8rem", color: unreadCount > 0 ? "#fb7185" : "var(--text-muted)", fontWeight: unreadCount > 0 ? "800" : "400" }}>
+                                                            {unreadCount > 0 ? "● NEW TRANSMISSION" : "ENCRYPTED CHANNEL"}
+                                                        </span>
+                                                    </div>
+                                                    {unreadCount > 0 && (
+                                                        <div style={{ background: "#f43f5e", color: "white", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: "900", boxShadow: "0 0 15px rgba(244, 63, 94, 0.5)" }}>
+                                                            {unreadCount}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 ) : (
                                     <div style={{ padding: "40px 20px", textAlign: "center", background: "rgba(255, 255, 255, 0.02)", borderRadius: "24px", border: "1px dashed var(--border-glass)" }}>
                                         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No active transmissions yet.</p>

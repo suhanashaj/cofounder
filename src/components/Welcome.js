@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts, getConnectionCount, postOpportunity, getUsers, getAllConnections, sendConnectionRequest } from "../utils/api";
+import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts, getConnectionCount, postOpportunity, getUsers, getAllConnections, sendConnectionRequest, getDirectDriveLink } from "../utils/api";
 import "../css/dashboard.css";
+import "../css/modal.css";
 
 function Welcome() {
   const navigate = useNavigate();
   const username = sessionStorage.getItem("loggedInUser");
-  const cachedProfilePic = sessionStorage.getItem("userProfilePic");
+  const cachedProfilePic = getDirectDriveLink(sessionStorage.getItem("userProfilePic"));
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -17,7 +18,11 @@ function Welcome() {
   const [isPosting, setIsPosting] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [isConnecting, setIsConnecting] = useState({});
+  const [selectedUser, setSelectedUser] = useState(null);
   useEffect(() => {
+    // Apply full-screen class to body for this page
+    document.body.classList.add("full-screen-page");
+
     const fetchDashboardData = async () => {
       if (username) {
         try {
@@ -110,7 +115,10 @@ function Welcome() {
 
     fetchDashboardData();
 
-    return () => clearTimeout(loadingTimeout);
+    return () => {
+      clearTimeout(loadingTimeout);
+      document.body.classList.remove("full-screen-page");
+    };
   }, [username]);
 
   const handleConnect = async (targetUser) => {
@@ -123,6 +131,127 @@ function Welcome() {
       alert("Error: " + res.msg);
     }
     setIsConnecting(prev => ({ ...prev, [targetUser]: false }));
+  };
+
+  const renderProfileModal = () => {
+    if (!selectedUser) return null;
+
+    const isFounder = selectedUser.role?.toLowerCase() === 'founder';
+    const isCoFounder = selectedUser.role?.toLowerCase() === 'cofounder' || selectedUser.role?.toLowerCase() === 'co-founder';
+
+    return (
+      <div className="modal-overlay" onClick={() => setSelectedUser(null)}>
+        <div className="profile-modal-content" onClick={e => e.stopPropagation()}>
+          <button className="modal-close-btn" onClick={() => setSelectedUser(null)}>✕</button>
+
+          <div className="profile-modal-header">
+            <img
+              src={selectedUser.profilePicUrl || `https://ui-avatars.com/api/?name=${selectedUser.username}&background=6366f1&color=fff&bold=true&size=200`}
+              alt="Profile"
+              className="modal-avatar"
+            />
+            <div className="modal-header-info">
+              <span className="modal-role-badge">{selectedUser.role}</span>
+              <h2>{selectedUser.fullName || selectedUser.username}</h2>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "20px" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>📍 {selectedUser.location || "Earth"}</span>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>⚡ {selectedUser.availability}</span>
+              </div>
+              <div style={{ display: "flex", gap: "15px" }}>
+                <button
+                  className="action-btn"
+                  onClick={() => {
+                    handleConnect(selectedUser.username);
+                    setSelectedUser(null);
+                  }}
+                  disabled={isConnecting[selectedUser.username]}
+                >
+                  {isConnecting[selectedUser.username] ? "CONNECTING..." : "CONNECT NOW"}
+                </button>
+                {selectedUser.pitchVideoUrl && (
+                  <a href={getDirectDriveLink(selectedUser.pitchVideoUrl)} target="_blank" rel="noreferrer" className="video-preview-btn">
+                    <span>🎬</span> WATCH PITCH
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-details-grid">
+            <div className="modal-detail-card">
+              <h4>About</h4>
+              <p>{selectedUser.about || "This visionary hasn't added a bio yet."}</p>
+            </div>
+
+            <div className="modal-detail-card">
+              <h4>Industry & Domain</h4>
+              <p>{selectedUser.domain || "Not specified"}</p>
+            </div>
+
+            {isFounder && (
+              <>
+                <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                  <h4>Startup Idea Description</h4>
+                  <p>{selectedUser.startupIdea || "Idea details are private or not yet provided."}</p>
+                </div>
+                <div className="modal-detail-card">
+                  <h4>Company Name</h4>
+                  <p>{selectedUser.companyName || "Stealth Startup"}</p>
+                </div>
+                <div className="modal-detail-card">
+                  <h4>Startup Stage</h4>
+                  <p>{selectedUser.startupStage || "Ideation"}</p>
+                </div>
+                <div className="modal-detail-card">
+                  <h4>Looking For</h4>
+                  <p>{selectedUser.lookingFor} {selectedUser.otherLookingFor ? `- ${selectedUser.otherLookingFor}` : ""}</p>
+                </div>
+                <div className="modal-detail-card">
+                  <h4>Required Skills</h4>
+                  <p>{selectedUser.requiredSkills || "Passionate collaborators"}</p>
+                </div>
+              </>
+            )}
+
+            {isCoFounder && (
+              <>
+                <div className="modal-detail-card">
+                  <h4>Skills</h4>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                    {Array.isArray(selectedUser.skills) ? selectedUser.skills.map((s, i) => (
+                      <span key={i} style={{ fontSize: "0.8rem", background: "rgba(99,102,241,0.1)", padding: "5px 10px", borderRadius: "5px", color: "white" }}>
+                        {s.name} {s.verified ? "✅" : ""}
+                      </span>
+                    )) : selectedUser.skills}
+                  </div>
+                </div>
+                {selectedUser.education && (
+                  <div className="modal-detail-card">
+                    <h4>Education</h4>
+                    <p>{selectedUser.education.degree} from {selectedUser.education.institution} ({selectedUser.education.year})</p>
+                  </div>
+                )}
+                {selectedUser.workExperience && (
+                  <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                    <h4>Work Experience</h4>
+                    <p><strong>{selectedUser.workExperience.role}</strong> at {selectedUser.workExperience.company}</p>
+                    <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "10px" }}>{selectedUser.workExperience.description}</p>
+                  </div>
+                )}
+                {selectedUser.projects && (
+                  <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                    <h4>Featured Project</h4>
+                    <p><strong>{selectedUser.projects.title}</strong></p>
+                    <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "5px" }}>{selectedUser.projects.description}</p>
+                    {selectedUser.projects.link && <a href={selectedUser.projects.link} target="_blank" rel="noreferrer" style={{ color: "var(--accent-color)", fontSize: "0.8rem" }}>Live Link ↗</a>}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Poll for unread messages - reduced frequency
@@ -301,7 +430,12 @@ function Welcome() {
 
             <div className="suggestions-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
               {suggestions.map((user) => (
-                <div key={user.username} className="stat-card suggestion-card" style={{ padding: "20px", position: "relative", overflow: "hidden" }}>
+                <div
+                  key={user.username}
+                  className="stat-card suggestion-card"
+                  style={{ padding: "20px", position: "relative", overflow: "hidden", cursor: "pointer" }}
+                  onClick={() => setSelectedUser(user)}
+                >
                   <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
                     <img
                       src={user.profilePicUrl || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true&size=48`}
@@ -317,13 +451,26 @@ function Welcome() {
                   <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "15px", minHeight: "2.5em" }}>
                     {user.mutualCount > 0 && <span>👥 {user.mutualCount} mutual connections<br /></span>}
                     {user.sharedSkills.length > 0 && <span>✨ Shared skills: {user.sharedSkills.join(', ')}</span>}
+                    {user.cvUrl && (
+                      <div style={{ marginTop: "8px" }}>
+                        <a
+                          href={getDirectDriveLink(user.cvUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: "var(--accent-color)", textDecoration: "none", fontSize: "0.75rem", fontWeight: "700" }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          VIEW CV 📄
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   <button
                     className="action-btn"
                     style={{ width: "100%", padding: "10px", fontSize: "0.9rem" }}
                     disabled={isConnecting[user.username]}
-                    onClick={() => handleConnect(user.username)}
+                    onClick={(e) => { e.stopPropagation(); handleConnect(user.username); }}
                   >
                     {isConnecting[user.username] ? "CONNECTING..." : "CONNECT"}
                   </button>
@@ -428,9 +575,8 @@ function Welcome() {
             Tip: A complete profile gets 3x more interests. Add your vision to stand out!
           </p>
         </div>
-
-
       </main>
+      {renderProfileModal()}
     </div>
   );
 }

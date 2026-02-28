@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, sendConnectionRequest, getConnectionRequests, getCurrentUserProfile, logout } from "../utils/api";
+import { getUsers, sendConnectionRequest, getConnectionRequests, getCurrentUserProfile, logout, getDirectDriveLink } from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import "../css/dashboard.css";
+import "../css/modal.css";
 
 function FindCoFounder() {
   const navigate = useNavigate();
@@ -13,18 +14,13 @@ function FindCoFounder() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ skill: "", domain: "" });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
-  // Professional avatar URLs to check for watermark
-  const professionalAvatars = [
-    "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop"
-  ];
 
   useEffect(() => {
+    // Apply full-screen class to body for this page
+    document.body.classList.add("full-screen-page");
+
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -57,7 +53,10 @@ function FindCoFounder() {
 
     fetchData();
 
-    return () => clearTimeout(loadingTimeout);
+    return () => {
+      clearTimeout(loadingTimeout);
+      document.body.classList.remove("full-screen-page");
+    };
   }, [username]);
 
   useEffect(() => {
@@ -98,6 +97,140 @@ function FindCoFounder() {
   const getConnectionStatus = (targetUser) => {
     const conn = myConnections.find(c => c.to === targetUser || c.from === targetUser);
     return conn ? conn.status : null;
+  };
+
+  const renderProfileModal = () => {
+    if (!selectedUser) return null;
+
+    const isFounder = selectedUser.role?.toLowerCase() === 'founder';
+    const isCoFounder = selectedUser.role?.toLowerCase() === 'cofounder' || selectedUser.role?.toLowerCase() === 'co-founder';
+
+    return (
+      <div className="modal-overlay" onClick={() => setSelectedUser(null)}>
+        <div className="profile-modal-content" onClick={e => e.stopPropagation()}>
+          <button className="modal-close-btn" onClick={() => setSelectedUser(null)}>✕</button>
+
+          <div className="profile-modal-header">
+            <img
+              src={selectedUser.profilePicUrl || `https://ui-avatars.com/api/?name=${selectedUser.username}&background=6366f1&color=fff&bold=true&size=200`}
+              alt="Profile"
+              className="modal-avatar"
+            />
+            <div className="modal-header-info">
+              <span className="modal-role-badge">{selectedUser.role}</span>
+              <h2>{selectedUser.fullName || selectedUser.username}</h2>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "20px" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>📍 {selectedUser.location || "Earth"}</span>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>⚡ {selectedUser.availability}</span>
+              </div>
+              <div style={{ display: "flex", gap: "15px" }}>
+                {getConnectionStatus(selectedUser.username) === 'accepted' ? (
+                  <button
+                    className="action-btn"
+                    style={{ background: "linear-gradient(135deg, #10b981, #059669)", color: "white" }}
+                    onClick={() => {
+                      navigate(`/messages?user=${selectedUser.username}`);
+                      setSelectedUser(null);
+                    }}
+                  >
+                    OPEN CHANNEL
+                  </button>
+                ) : (
+                  <button
+                    className="action-btn"
+                    onClick={() => {
+                      handleConnect(selectedUser.username);
+                      setSelectedUser(null);
+                    }}
+                    disabled={getConnectionStatus(selectedUser.username) === 'pending'}
+                  >
+                    {getConnectionStatus(selectedUser.username) === 'pending' ? "PENDING..." : "CONNECT NOW"}
+                  </button>
+                )}
+                {selectedUser.pitchVideoUrl && (
+                  <a href={getDirectDriveLink(selectedUser.pitchVideoUrl)} target="_blank" rel="noreferrer" className="video-preview-btn">
+                    <span>🎬</span> WATCH PITCH
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-details-grid">
+            <div className="modal-detail-card">
+              <h4>About</h4>
+              <p>{selectedUser.about || "This visionary hasn't added a bio yet."}</p>
+            </div>
+
+            <div className="modal-detail-card">
+              <h4>Industry & Domain</h4>
+              <p>{selectedUser.domain || "Not specified"}</p>
+            </div>
+
+            {isFounder && (
+              <>
+                <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                  <h4>Startup Idea Description</h4>
+                  <p>{selectedUser.startupIdea || "Idea details are private or not yet provided."}</p>
+                </div>
+                <div className="modal-detail-card">
+                  <h4>Company Name</h4>
+                  <p>{selectedUser.companyName || "Stealth Startup"}</p>
+                </div>
+                <div className="modal-detail-card">
+                  <h4>Startup Stage</h4>
+                  <p>{selectedUser.startupStage || "Ideation"}</p>
+                </div>
+                <div className="modal-detail-card">
+                  <h4>Looking For</h4>
+                  <p>{selectedUser.lookingFor} {selectedUser.otherLookingFor ? `- ${selectedUser.otherLookingFor}` : ""}</p>
+                </div>
+                <div className="modal-detail-card">
+                  <h4>Required Skills</h4>
+                  <p>{selectedUser.requiredSkills || "Passionate collaborators"}</p>
+                </div>
+              </>
+            )}
+
+            {isCoFounder && (
+              <>
+                <div className="modal-detail-card">
+                  <h4>Skills</h4>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                    {Array.isArray(selectedUser.skills) ? selectedUser.skills.map((s, i) => (
+                      <span key={i} style={{ fontSize: "0.8rem", background: "rgba(99,102,241,0.1)", padding: "5px 10px", borderRadius: "5px", color: "white" }}>
+                        {s.name} {s.verified ? "✅" : ""}
+                      </span>
+                    )) : selectedUser.skills}
+                  </div>
+                </div>
+                {selectedUser.education && (
+                  <div className="modal-detail-card">
+                    <h4>Education</h4>
+                    <p>{selectedUser.education.degree} from {selectedUser.education.institution} ({selectedUser.education.year})</p>
+                  </div>
+                )}
+                {selectedUser.workExperience && (
+                  <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                    <h4>Work Experience</h4>
+                    <p><strong>{selectedUser.workExperience.role}</strong> at {selectedUser.workExperience.company}</p>
+                    <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "10px" }}>{selectedUser.workExperience.description}</p>
+                  </div>
+                )}
+                {selectedUser.projects && (
+                  <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                    <h4>Featured Project</h4>
+                    <p><strong>{selectedUser.projects.title}</strong></p>
+                    <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "5px" }}>{selectedUser.projects.description}</p>
+                    {selectedUser.projects.link && <a href={selectedUser.projects.link} target="_blank" rel="noreferrer" style={{ color: "var(--accent-color)", fontSize: "0.8rem" }}>Live Link ↗</a>}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -209,7 +342,12 @@ function FindCoFounder() {
             results.map((user, idx) => {
               const status = getConnectionStatus(user.username);
               return (
-                <div key={idx} className="stat-card" style={{ textAlign: "left", animationDelay: `${idx * 0.05}s`, display: "flex", flexDirection: "column" }}>
+                <div
+                  key={idx}
+                  className="stat-card"
+                  style={{ textAlign: "left", animationDelay: `${idx * 0.05}s`, display: "flex", flexDirection: "column", cursor: "pointer" }}
+                  onClick={() => setSelectedUser(user)}
+                >
                   <div style={{ flexGrow: 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
                       <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
@@ -219,25 +357,6 @@ function FindCoFounder() {
                             alt="Avatar"
                             style={{ width: "64px", height: "64px", borderRadius: "18px", objectFit: "cover", border: "2px solid var(--border-glass)", background: "rgba(255, 255, 255, 0.05)" }}
                           />
-                          {/* AVATAR watermark for pre-selected avatars */}
-                          {user.profilePicUrl && professionalAvatars.includes(user.profilePicUrl) && (
-                            <div style={{
-                              position: "absolute",
-                              top: "4px",
-                              left: "4px",
-                              background: "rgba(0, 0, 0, 0.75)",
-                              color: "white",
-                              padding: "2px 6px",
-                              borderRadius: "4px",
-                              fontSize: "0.5rem",
-                              fontWeight: "800",
-                              letterSpacing: "0.5px",
-                              backdropFilter: "blur(4px)",
-                              border: "1px solid rgba(255, 255, 255, 0.2)"
-                            }}>
-                              AVATAR
-                            </div>
-                          )}
                           {user.verified && <div style={{ position: "absolute", bottom: "-5px", right: "-5px", background: "var(--success)", width: "18px", height: "18px", borderRadius: "50%", border: "3px solid #020617", boxShadow: "0 0 10px var(--success)" }}></div>}
                         </div>
                         <div>
@@ -282,19 +401,52 @@ function FindCoFounder() {
                         <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600" }}>DOMAIN</span>
                         <span style={{ fontSize: "0.8rem", fontWeight: "800", color: "white" }}>{user.domain?.toUpperCase() || "N/A"}</span>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600" }}>EXPERTISE</span>
-                        <span style={{ fontSize: "0.8rem", fontWeight: "800", color: "white" }}>{user.experience?.toUpperCase() || "N/A"}</span>
+
+                      {user.education?.degree && (
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                          <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600" }}>EDUCATION</span>
+                          <span style={{ fontSize: "0.8rem", fontWeight: "800", color: "white", textAlign: "right", maxWidth: "180px" }}>
+                            {user.education.degree} @ {user.education.institution}
+                          </span>
+                        </div>
+                      )}
+
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600" }}>EXPERIENCE</span>
+                        <span style={{ fontSize: "0.8rem", fontWeight: "800", color: "white" }}>
+                          {user.isFresher ? "FRESHER" : (user.workExperience?.role || user.experience?.toUpperCase() || "N/A")}
+                        </span>
                       </div>
+
+                      {user.projects?.title && (
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                          <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600" }}>FEATURED PROJECT</span>
+                          <span style={{ fontSize: "0.8rem", fontWeight: "800", color: "white", textAlign: "right" }}>{user.projects.title}</span>
+                        </div>
+                      )}
+
+                      {user.cvUrl && (
+                        <div style={{ marginTop: "15px", borderTop: "1px dashed var(--border-glass)", paddingTop: "12px", textAlign: "center" }}>
+                          <a
+                            href={getDirectDriveLink(user.cvUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: "var(--accent-color)", textDecoration: "none", fontSize: "0.85rem", fontWeight: "800", display: "inline-flex", alignItems: "center", gap: "5px" }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            VIEW FULL CV 📄
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {status === "pending" ? (
-                    <button className="action-btn" disabled style={{ width: "100%", background: "rgba(255, 255, 255, 0.05)", color: "var(--text-muted)", cursor: "not-allowed", border: "1px solid var(--border-glass)" }}>REQUEST PENDING</button>
+                    <button className="action-btn" disabled onClick={(e) => e.stopPropagation()} style={{ width: "100%", background: "rgba(255, 255, 255, 0.05)", color: "var(--text-muted)", cursor: "not-allowed", border: "1px solid var(--border-glass)" }}>REQUEST PENDING</button>
                   ) : status === "accepted" ? (
-                    <button className="action-btn" style={{ width: "100%", background: "linear-gradient(135deg, #10b981, #059669)", color: "white" }} onClick={() => navigate("/messages")}>OPEN CHANNEL</button>
+                    <button className="action-btn" style={{ width: "100%", background: "linear-gradient(135deg, #10b981, #059669)", color: "white" }} onClick={(e) => { e.stopPropagation(); navigate(`/messages?user=${user.username}`); }}>OPEN CHANNEL</button>
                   ) : (
-                    <button className="action-btn" style={{ width: "100%" }} onClick={() => handleConnect(user.username)}>QUICK CONNECT</button>
+                    <button className="action-btn" style={{ width: "100%" }} onClick={(e) => { e.stopPropagation(); handleConnect(user.username); }}>QUICK CONNECT</button>
                   )}
                 </div>
               );
@@ -305,6 +457,8 @@ function FindCoFounder() {
             </div>
           )}
         </div>
+
+        {renderProfileModal()}
       </main>
     </div>
   );

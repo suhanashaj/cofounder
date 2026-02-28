@@ -153,7 +153,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
         const fileId = driveResponse.data.id;
         // Construct a direct image URL for display in <img> tags
-        const directLink = `https://drive.google.com/uc?export=view&id=${fileId}`;
+        const directLink = `https://lh3.googleusercontent.com/d/${fileId}`;
         console.log(`[Upload] Successfully uploaded. ID: ${fileId}`);
 
         // Optional: Make file public (crucial for direct link to work)

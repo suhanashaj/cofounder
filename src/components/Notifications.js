@@ -12,6 +12,9 @@ function Notifications() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
+        // Apply full-screen class to body for this page
+        document.body.classList.add("full-screen-page");
+
         const fetchData = async () => {
             const [opps, profile, connections] = await Promise.all([
                 getOpportunities(),
@@ -41,6 +44,10 @@ function Notifications() {
             setLoading(false);
         };
         fetchData();
+
+        return () => {
+            document.body.classList.remove("full-screen-page");
+        };
     }, [username]);
 
     const handleConnect = async (targetUser) => {

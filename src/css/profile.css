@@ -5,6 +5,8 @@
 .profile-page-wrapper {
     display: flex;
     min-height: 100vh;
+    width: 100% !important;
+    max-width: 100% !important;
     background-color: var(--primary-bg);
     color: var(--text-main);
     font-family: 'Outfit', sans-serif;
