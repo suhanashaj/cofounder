@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getUsers, approveUserAPI, rejectUserAPI, getAllConnections, logout, verifySpecificSkillAPI, sendMessage } from "../utils/api";
+import { getUsers, approveUserAPI, rejectUserAPI, getAllConnections, logout, verifySpecificSkillAPI, sendMessage, getCurrentUserProfile, getDirectDriveLink } from "../utils/api";
 import { db } from "../firebase";
 import { collection, getDocs, updateDoc, doc, query, orderBy, serverTimestamp } from "firebase/firestore";
 import "../css/dashboard.css";
 
 function Admin() {
     const navigate = useNavigate();
+    const username = sessionStorage.getItem("loggedInUser");
+    const cachedProfilePic = getDirectDriveLink(sessionStorage.getItem("userProfilePic"));
+    const [userData, setUserData] = useState(null);
     const [users, setUsers] = useState([]);
     const [connections, setConnections] = useState([]);
     const [helpMessages, setHelpMessages] = useState([]);
@@ -62,12 +65,16 @@ function Admin() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [userData, connectionData] = await Promise.all([
+            const [userDataResult, connectionData, currentUserProfile] = await Promise.all([
                 getUsers(),
-                getAllConnections()
+                getAllConnections(),
+                getCurrentUserProfile()
             ]);
-            setUsers(userData);
+            setUsers(userDataResult);
             setConnections(connectionData);
+            if (currentUserProfile.success) {
+                setUserData(currentUserProfile.data);
+            }
 
             // Fetch Help Center Messages
             const q = query(collection(db, "helpMessages"), orderBy("timestamp", "desc"));
@@ -200,6 +207,17 @@ function Admin() {
         <div className="dashboard-wrapper">
             <aside className="sidebar">
                 <div className="sidebar-logo">Admin Panel</div>
+
+                {/* Sidebar Mini Profile */}
+                <div className="sidebar-user-preview" style={{ padding: "20px", borderBottom: "1px solid var(--border-glass)", marginBottom: "10px", textAlign: "center" }}>
+                    <img
+                        src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
+                        alt="User"
+                        style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+                    />
+                    <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
+                </div>
+
                 <ul className="nav-menu">
                     <li
                         className={`nav-item ${activeTab === "analytics" ? "active" : ""}`}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getOpportunities, logout, getCurrentUserProfile, sendConnectionRequest, getConnectionRequests } from "../utils/api";
+import { getOpportunities, logout, getCurrentUserProfile, sendConnectionRequest, getConnectionRequests, getDirectDriveLink } from "../utils/api";
 import "../css/dashboard.css";
 
 function Notifications() {
@@ -10,6 +10,8 @@ function Notifications() {
     const [loading, setLoading] = useState(true);
     const [myConnections, setMyConnections] = useState([]);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [userData, setUserData] = useState(null);
+    const cachedProfilePic = getDirectDriveLink(sessionStorage.getItem("userProfilePic"));
 
     useEffect(() => {
         // Apply full-screen class to body for this page
@@ -24,6 +26,7 @@ function Notifications() {
 
             let filteredOpps = opps;
             if (profile.success && profile.data) {
+                setUserData(profile.data);
                 const extractSkills = (s) => {
                     if (Array.isArray(s)) return s.map(skill => skill.name.toLowerCase());
                     if (typeof s === 'string') return s.toLowerCase().split(',').map(item => item.trim()).filter(item => item);
@@ -85,6 +88,17 @@ function Notifications() {
 
             <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`}>
                 <div className="sidebar-logo" onClick={() => navigate("/welcome")} style={{ cursor: "pointer" }}>Cofounder.</div>
+
+                {/* Sidebar Mini Profile */}
+                <div className="sidebar-user-preview" style={{ padding: "20px", borderBottom: "1px solid var(--border-glass)", marginBottom: "10px", textAlign: "center" }}>
+                    <img
+                        src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
+                        alt="User"
+                        style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+                    />
+                    <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
+                </div>
+
                 <ul className="nav-menu">
                     <li className="nav-item" onClick={() => navigate("/welcome")}>
                         <span>🏠</span> Dashboard

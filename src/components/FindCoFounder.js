@@ -15,7 +15,8 @@ function FindCoFounder() {
   const [filters, setFilters] = useState({ skill: "", domain: "", location: "" });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-
+  const [userData, setUserData] = useState(null);
+  const cachedProfilePic = getDirectDriveLink(sessionStorage.getItem("userProfilePic"));
 
   useEffect(() => {
     // Apply full-screen class to body for this page
@@ -24,13 +25,16 @@ function FindCoFounder() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [allUsers, connections] = await Promise.all([
+        const [allUsers, connections, userProfileRes] = await Promise.all([
           getUsers(),
           getConnectionRequests(username),
           getCurrentUserProfile()
         ]);
         setUsers(allUsers);
         setMyConnections(connections);
+        if (userProfileRes.success) {
+          setUserData(userProfileRes.data);
+        }
 
         // Initial results: show all verified/approved users except self
         const initialMatches = allUsers.filter(u => u.username !== username && u.verified && u.certificateApproved);
@@ -267,6 +271,17 @@ function FindCoFounder() {
       {/* Sidebar - Consistent with other pages */}
       <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`} style={{ position: "sticky", top: 0, height: "100vh" }}>
         <div className="sidebar-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>Cofounder.</div>
+
+        {/* Sidebar Mini Profile */}
+        <div className="sidebar-user-preview" style={{ padding: "20px", borderBottom: "1px solid var(--border-glass)", marginBottom: "10px", textAlign: "center" }}>
+          <img
+            src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
+            alt="User"
+            style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+          />
+          <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
+        </div>
+
         <ul className="nav-menu">
           <li className="nav-item" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
             <span>🏠</span> Dashboard

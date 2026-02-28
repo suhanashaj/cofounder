@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getConnectionRequests, updateConnectionStatus, logout, sendMessage, getMessages, getUnreadCounts, markMessagesAsRead, getMessagePartners } from "../utils/api";
+import { getConnectionRequests, updateConnectionStatus, logout, sendMessage, getMessages, getUnreadCounts, markMessagesAsRead, getMessagePartners, getCurrentUserProfile, getDirectDriveLink } from "../utils/api";
 import "../css/dashboard.css";
 
 function Messages() {
@@ -15,6 +15,8 @@ function Messages() {
     const messagesEndRef = useRef(null);
     const [loading, setLoading] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [userData, setUserData] = useState(null);
+    const cachedProfilePic = getDirectDriveLink(sessionStorage.getItem("userProfilePic"));
     const location = useLocation();
 
     // Handle "user" query parameter from Inbox/Notifications
@@ -61,7 +63,14 @@ function Messages() {
         document.body.classList.add("full-screen-page");
 
         const init = async () => {
-            await Promise.all([fetchConnections(), fetchUnread()]);
+            const [, , profileRes] = await Promise.all([
+                fetchConnections(),
+                fetchUnread(),
+                getCurrentUserProfile()
+            ]);
+            if (profileRes && profileRes.success) {
+                setUserData(profileRes.data);
+            }
             setLoading(false);
         };
         init();
@@ -147,6 +156,17 @@ function Messages() {
 
             <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`} style={{ position: "sticky", top: 0, height: "100vh" }}>
                 <div className="sidebar-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>Cofounder.</div>
+
+                {/* Sidebar Mini Profile */}
+                <div className="sidebar-user-preview" style={{ padding: "20px", borderBottom: "1px solid var(--border-glass)", marginBottom: "10px", textAlign: "center" }}>
+                    <img
+                        src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
+                        alt="User"
+                        style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+                    />
+                    <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
+                </div>
+
                 <ul className="nav-menu">
                     <li className="nav-item" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
                         <span style={{ fontSize: "1.2rem" }}>🏠</span> Dashboard

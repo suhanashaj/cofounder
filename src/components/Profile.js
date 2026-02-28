@@ -359,6 +359,17 @@ function Profile() {
       {/* Sidebar - Consistent with Dashboard */}
       <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-logo">Cofounder.</div>
+
+        {/* Sidebar Mini Profile */}
+        <div className="sidebar-user-preview" style={{ padding: "20px", borderBottom: "1px solid var(--border-glass)", marginBottom: "10px", textAlign: "center" }}>
+          <img
+            src={profile?.profilePicUrl || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
+            alt="User"
+            style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+          />
+          <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{profile?.fullName || username}</div>
+        </div>
+
         <ul className="nav-menu">
           <li className="nav-item" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
             <span>🏠</span> Dashboard

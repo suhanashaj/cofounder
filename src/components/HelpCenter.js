@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { logout } from "../utils/api";
+import { logout, getCurrentUserProfile, getDirectDriveLink } from "../utils/api";
 import "../css/help-center.css";
 
 function HelpCenter() {
@@ -18,6 +18,9 @@ function HelpCenter() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const username = sessionStorage.getItem("loggedInUser");
     const isLoggedIn = !!username;
+
+    const [userData, setUserData] = useState(null);
+    const cachedProfilePic = getDirectDriveLink(sessionStorage.getItem("userProfilePic"));
 
     useEffect(() => {
         // Add full-screen class to body for this page only
@@ -35,11 +38,21 @@ function HelpCenter() {
             }));
         }
 
+        const fetchProfile = async () => {
+            if (isLoggedIn) {
+                const res = await getCurrentUserProfile();
+                if (res.success) {
+                    setUserData(res.data);
+                }
+            }
+        };
+        fetchProfile();
+
         return () => {
             // Clean up class when leaving page
             document.body.classList.remove("full-screen-page");
         };
-    }, []);
+    }, [isLoggedIn]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -87,6 +100,17 @@ function HelpCenter() {
             </button>
             <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`}>
                 <div className="sidebar-logo" onClick={() => navigate("/welcome")} style={{ cursor: "pointer" }}>Cofounder.</div>
+
+                {/* Sidebar Mini Profile */}
+                <div className="sidebar-user-preview" style={{ padding: "20px", borderBottom: "1px solid var(--border-glass)", marginBottom: "10px", textAlign: "center" }}>
+                    <img
+                        src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
+                        alt="User"
+                        style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+                    />
+                    <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
+                </div>
+
                 <ul className="nav-menu">
                     <li className="nav-item" onClick={() => { navigate("/welcome"); setIsMenuOpen(false); }}>
                         <span>🏠</span> Dashboard
