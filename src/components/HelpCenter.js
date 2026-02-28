@@ -52,10 +52,12 @@ function HelpCenter() {
 
         try {
             const userId = sessionStorage.getItem("userEmail") || "anonymous";
+            const username = sessionStorage.getItem("loggedInUser") || "anonymous";
 
             await addDoc(collection(db, "helpMessages"), {
                 ...formData,
                 userId: userId,
+                username: username,
                 timestamp: serverTimestamp(),
                 status: "unread"
             });

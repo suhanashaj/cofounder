@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getConnectionRequests, updateConnectionStatus, logout, sendMessage, getMessages, getUnreadCounts, markMessagesAsRead } from "../utils/api";
+import { getConnectionRequests, updateConnectionStatus, logout, sendMessage, getMessages, getUnreadCounts, markMessagesAsRead, getMessagePartners } from "../utils/api";
 import "../css/dashboard.css";
 
 function Messages() {
     const navigate = useNavigate();
     const username = sessionStorage.getItem("loggedInUser");
     const [connections, setConnections] = useState([]);
+    const [allPartners, setAllPartners] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
     const [chatMessages, setChatMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
@@ -32,8 +33,12 @@ function Messages() {
     };
 
     const fetchConnections = useCallback(async () => {
-        const data = await getConnectionRequests(username);
+        const [data, partners] = await Promise.all([
+            getConnectionRequests(username),
+            getMessagePartners(username)
+        ]);
         setConnections(data);
+        setAllPartners(partners);
     }, [username]);
 
     const fetchUnread = useCallback(async () => {
@@ -67,9 +72,12 @@ function Messages() {
     }, [fetchConnections, fetchUnread]);
 
     useEffect(() => {
-        const interval = setInterval(fetchUnread, 5000);
+        const interval = setInterval(() => {
+            fetchUnread();
+            fetchConnections();
+        }, 5000);
         return () => clearInterval(interval);
-    }, [fetchUnread]);
+    }, [fetchUnread, fetchConnections]);
 
     useEffect(() => {
         if (activeChat) {
@@ -107,7 +115,8 @@ function Messages() {
     };
 
     const pendingRequests = connections.filter(c => c.to === username && c.status === "pending");
-    const acceptedMatches = connections.filter(c => c.status === "accepted");
+    const acceptedPartners = connections.filter(c => c.status === "accepted").map(c => c.from === username ? c.to : c.from);
+    const displayPartners = Array.from(new Set([...acceptedPartners, ...allPartners])).filter(p => p !== username);
 
     if (loading) {
         return (
@@ -228,16 +237,15 @@ function Messages() {
 
                             <section style={{ flexGrow: 1 }}>
                                 <h3 style={{ fontSize: "0.8rem", color: "var(--accent-color)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "16px" }}>Active Circles</h3>
-                                {acceptedMatches.length > 0 ? (
+                                {displayPartners.length > 0 ? (
                                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "20px" }}>
-                                        {acceptedMatches.map((match) => {
-                                            const partner = match.from === username ? match.to : match.from;
+                                        {displayPartners.map((partner) => {
                                             const isActive = activeChat === partner;
                                             const unreadCount = unreadCounts[partner] || 0;
 
                                             return (
                                                 <div
-                                                    key={match.id}
+                                                    key={partner}
                                                     className="stat-card"
                                                     onClick={() => setActiveChat(partner)}
                                                     style={{
@@ -250,13 +258,13 @@ function Messages() {
                                                         margin: 0
                                                     }}
                                                 >
-                                                    <div style={{ width: "52px", height: "52px", borderRadius: "16px", background: "linear-gradient(135deg, #6366f1, #a855f7)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "20px", fontWeight: "900", fontSize: "1.5rem", boxShadow: "0 8px 20px rgba(0,0,0,0.3)" }}>
+                                                    <div style={{ width: "52px", height: "52px", borderRadius: "16px", background: partner === 'Admin' ? "linear-gradient(135deg, #10b981, #3b82f6)" : "linear-gradient(135deg, #6366f1, #a855f7)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "20px", fontWeight: "900", fontSize: "1.5rem", boxShadow: "0 8px 20px rgba(0,0,0,0.3)" }}>
                                                         {partner[0].toUpperCase()}
                                                     </div>
                                                     <div style={{ flexGrow: 1 }}>
-                                                        <strong style={{ display: "block", color: "white", fontSize: "1.05rem", marginBottom: "4px" }}>{partner}</strong>
+                                                        <strong style={{ display: "block", color: "white", fontSize: "1.05rem", marginBottom: "4px" }}>{partner} {partner === 'Admin' && <span style={{ fontSize: "0.6rem", background: "rgba(16, 185, 129, 0.2)", color: "#10b981", padding: "2px 6px", borderRadius: "4px", marginLeft: "5px", border: "1px solid #10b981" }}>SUPPORT</span>}</strong>
                                                         <span style={{ fontSize: "0.8rem", color: unreadCount > 0 ? "#fb7185" : "var(--text-muted)", fontWeight: unreadCount > 0 ? "800" : "400" }}>
-                                                            {unreadCount > 0 ? "● NEW TRANSMISSION" : "ENCRYPTED CHANNEL"}
+                                                            {unreadCount > 0 ? "● NEW TRANSMISSION" : partner === 'Admin' ? "SYSTEM CHANNEL" : "ENCRYPTED CHANNEL"}
                                                         </span>
                                                     </div>
                                                     {unreadCount > 0 && (

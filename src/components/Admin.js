@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getUsers, approveUserAPI, rejectUserAPI, getAllConnections, logout, verifySpecificSkillAPI } from "../utils/api";
+import { getUsers, approveUserAPI, rejectUserAPI, getAllConnections, logout, verifySpecificSkillAPI, sendMessage } from "../utils/api";
 import { db } from "../firebase";
 import { collection, getDocs, updateDoc, doc, query, orderBy, serverTimestamp } from "firebase/firestore";
 import "../css/dashboard.css";
@@ -112,22 +112,35 @@ function Admin() {
                 respondedAt: serverTimestamp()
             });
 
-            // 2. Prepare mailto link
-            const subject = encodeURIComponent(`RE: ${replyTo.subject || "Cofounder Match Inquiry"}`);
-            const body = encodeURIComponent(`${replyText}\n\n---\nOriginal Message from ${replyTo.name}:\n${replyTo.message}`);
-            const mailtoUrl = `mailto:${replyTo.email}?subject=${subject}&body=${body}`;
+            // 2. Find target user by email or username
+            let targetUsername = replyTo.username;
+            if (!targetUsername || targetUsername === "anonymous") {
+                const userObj = users.find(u => u.email === replyTo.email);
+                if (userObj) targetUsername = userObj.username;
+            }
 
-            // 3. Launch Email Client
-            window.location.href = mailtoUrl;
+            if (targetUsername && targetUsername !== "anonymous") {
+                // 3. Send Internal Message
+                await sendMessage("Admin", targetUsername, replyText);
 
-            // 4. Update local state
-            setHelpMessages(prev => prev.map(msg =>
-                msg.id === replyTo.id ? { ...msg, status: "resolved", adminReply: replyText } : msg
-            ));
+                // 4. Update local state
+                setHelpMessages(prev => prev.map(msg =>
+                    msg.id === replyTo.id ? { ...msg, status: "resolved", adminReply: replyText } : msg
+                ));
 
-            setReplyTo(null);
-            setReplyText("");
-            alert(`Succesfully marked as RESOLVED!\n\nLaunching your email client to send the reply to: ${replyTo.email}\n\nNote: If it doesn't open automatically, please ensure you have a default email app set up.`);
+                setReplyTo(null);
+                setReplyText("");
+                alert(`Successfully marked as RESOLVED and sent in-app message to ${targetUsername}!`);
+            } else {
+                // If user is anonymous or not found in system
+                alert(`Note: No registered user found with email ${replyTo.email}. Marking as RESOLVED locally, but no in-app message could be sent.`);
+
+                setHelpMessages(prev => prev.map(msg =>
+                    msg.id === replyTo.id ? { ...msg, status: "resolved", adminReply: replyText } : msg
+                ));
+                setReplyTo(null);
+                setReplyText("");
+            }
         } catch (error) {
             console.error("Error replying to message:", error);
             alert("Database update failed. Please check your connection.");
@@ -736,7 +749,7 @@ function Admin() {
                         </div>
 
                         <div style={{ marginBottom: "20px" }}>
-                            <label style={{ display: "block", marginBottom: "8px", fontSize: "0.85rem", color: "var(--accent-color)", fontWeight: "bold" }}>YOUR RESPONSE (WILL BE SENT VIA EMAIL)</label>
+                            <label style={{ display: "block", marginBottom: "8px", fontSize: "0.85rem", color: "var(--accent-color)", fontWeight: "bold" }}>YOUR RESPONSE (WILL BE SENT AS IN-APP MESSAGE)</label>
                             <textarea
                                 style={{
                                     width: "100%", height: "200px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-glass)",
@@ -755,7 +768,7 @@ function Admin() {
                                 onClick={handleSendReply}
                                 disabled={isReplying || !replyText.trim()}
                             >
-                                {isReplying ? "Processing..." : "Send Email & Resolve"}
+                                {isReplying ? "Processing..." : "Send Message & Resolve"}
                             </button>
                             <button
                                 className="action-btn"

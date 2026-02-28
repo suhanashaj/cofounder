@@ -7,6 +7,11 @@ function Features() {
 
     useEffect(() => {
         window.scrollTo(0, 0);
+        document.body.classList.add("full-screen-page");
+
+        return () => {
+            document.body.classList.remove("full-screen-page");
+        };
     }, []);
 
     const highlightFeatures = [

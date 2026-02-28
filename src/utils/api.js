@@ -629,6 +629,38 @@ export const getMessages = async (user1, user2) => {
   }
 };
 
+// GET ALL MESSAGE PARTNERS
+export const getMessagePartners = async (username) => {
+  try {
+    const user = await ensureAuthReady();
+    if (!user) return [];
+
+    const messagesRef = collection(db, "messages");
+
+    // Query messages: from current user
+    const q1 = query(messagesRef, where("from", "==", username));
+    // Query messages: to current user
+    const q2 = query(messagesRef, where("to", "==", username));
+
+    const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+
+    const partners = new Set();
+    snap1.forEach(doc => {
+      const data = doc.data();
+      if (data.to) partners.add(data.to);
+    });
+    snap2.forEach(doc => {
+      const data = doc.data();
+      if (data.from) partners.add(data.from);
+    });
+
+    return Array.from(partners);
+  } catch (error) {
+    console.error("Get message partners error:", error);
+    return [];
+  }
+};
+
 // GET UNREAD MESSAGES COUNT
 export const getUnreadCounts = async (username) => {
   try {
