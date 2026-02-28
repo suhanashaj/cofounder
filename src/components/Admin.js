@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUsers, approveUserAPI, rejectUserAPI, getAllConnections, logout, verifySpecificSkillAPI } from "../utils/api";
 import { db } from "../firebase";
-import { collection, getDocs, updateDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, updateDoc, doc, query, orderBy, serverTimestamp } from "firebase/firestore";
 import "../css/dashboard.css";
 
 function Admin() {
@@ -15,6 +15,9 @@ function Admin() {
     const [categoryView, setCategoryView] = useState(null); // Array of users to show in modal
     const [selectedUserSkills, setSelectedUserSkills] = useState(null);
     const [categoryName, setCategoryName] = useState("");
+    const [replyTo, setReplyTo] = useState(null);
+    const [replyText, setReplyText] = useState("");
+    const [isReplying, setIsReplying] = useState(false);
 
     const viewCategory = (type) => {
         let filtered = [];
@@ -48,7 +51,12 @@ function Admin() {
 
 
     useEffect(() => {
+        document.body.classList.add("full-screen-page");
         fetchData();
+
+        return () => {
+            document.body.classList.remove("full-screen-page");
+        };
     }, []);
 
     const fetchData = async () => {
@@ -88,6 +96,43 @@ function Admin() {
         } catch (error) {
             console.error("Error marking message as read:", error);
             alert("Failed to update status.");
+        }
+    };
+
+    const handleSendReply = async () => {
+        if (!replyTo || !replyText.trim()) return;
+        setIsReplying(true);
+
+        try {
+            // 1. Mark as Resolved in Firestore
+            const messageRef = doc(db, "helpMessages", replyTo.id);
+            await updateDoc(messageRef, {
+                status: "resolved",
+                adminReply: replyText,
+                respondedAt: serverTimestamp()
+            });
+
+            // 2. Prepare mailto link
+            const subject = encodeURIComponent(`RE: ${replyTo.subject || "Cofounder Match Inquiry"}`);
+            const body = encodeURIComponent(`${replyText}\n\n---\nOriginal Message from ${replyTo.name}:\n${replyTo.message}`);
+            const mailtoUrl = `mailto:${replyTo.email}?subject=${subject}&body=${body}`;
+
+            // 3. Launch Email Client
+            window.location.href = mailtoUrl;
+
+            // 4. Update local state
+            setHelpMessages(prev => prev.map(msg =>
+                msg.id === replyTo.id ? { ...msg, status: "resolved", adminReply: replyText } : msg
+            ));
+
+            setReplyTo(null);
+            setReplyText("");
+            alert(`Succesfully marked as RESOLVED!\n\nLaunching your email client to send the reply to: ${replyTo.email}\n\nNote: If it doesn't open automatically, please ensure you have a default email app set up.`);
+        } catch (error) {
+            console.error("Error replying to message:", error);
+            alert("Database update failed. Please check your connection.");
+        } finally {
+            setIsReplying(false);
         }
     };
 
@@ -270,25 +315,35 @@ function Admin() {
                                             <td style={{ padding: "20px 30px" }}>
                                                 <span style={{
                                                     padding: "4px 10px",
-                                                    backgroundColor: msg.status === 'unread' ? "#fff7ed" : "#f0fdf4",
-                                                    color: msg.status === 'unread' ? "#c2410c" : "#15803d",
+                                                    backgroundColor: msg.status === 'unread' ? "rgba(239, 68, 68, 0.1)" : msg.status === 'resolved' ? "rgba(16, 185, 129, 0.1)" : "rgba(99, 102, 241, 0.1)",
+                                                    color: msg.status === 'unread' ? "#ef4444" : msg.status === 'resolved' ? "#10b981" : "#6366f1",
                                                     borderRadius: "15px",
                                                     fontSize: "0.75rem",
-                                                    fontWeight: "600"
+                                                    fontWeight: "600",
+                                                    textTransform: "capitalize"
                                                 }}>
                                                     {msg.status}
                                                 </span>
                                             </td>
                                             <td style={{ padding: "20px 30px" }}>
-                                                {msg.status === 'unread' && (
+                                                <div style={{ display: "flex", gap: "10px" }}>
+                                                    {msg.status === 'unread' && (
+                                                        <button
+                                                            className="action-btn"
+                                                            onClick={() => handleMarkAsRead(msg.id)}
+                                                            style={{ padding: "6px 12px", fontSize: "0.75rem" }}
+                                                        >
+                                                            Mark Read
+                                                        </button>
+                                                    )}
                                                     <button
                                                         className="action-btn"
-                                                        onClick={() => handleMarkAsRead(msg.id)}
-                                                        style={{ padding: "6px 12px", fontSize: "0.75rem" }}
+                                                        onClick={() => setReplyTo(msg)}
+                                                        style={{ padding: "6px 12px", fontSize: "0.75rem", backgroundColor: "#6366f1", color: "white" }}
                                                     >
-                                                        Mark Read
+                                                        {msg.status === 'resolved' ? "Resend Reply" : "Reply"}
                                                     </button>
-                                                )}
+                                                </div>
                                             </td>
                                         </tr>
                                     )) : (
@@ -659,6 +714,60 @@ function Admin() {
                         </div>
                     </div>
                 )}
+
+            {replyTo && (
+                <div className="modal-overlay" style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100,
+                    backdropFilter: 'blur(10px)'
+                }}>
+                    <div className="modal-content" style={{
+                        width: '600px', background: 'var(--card-bg)', padding: '40px', borderRadius: '32px',
+                        border: '1px solid var(--border-glass)', boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+                    }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                            <h2 style={{ fontSize: "1.5rem" }}>Reply to Inquiry</h2>
+                            <button onClick={() => setReplyTo(null)} style={{ background: "none", border: "none", color: "white", fontSize: "1.5rem", cursor: "pointer" }}>✕</button>
+                        </div>
+
+                        <div style={{ marginBottom: "20px", padding: "15px", background: "rgba(255,255,255,0.03)", borderRadius: "12px", border: "1px solid var(--border-glass)" }}>
+                            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "5px" }}>Original Message from <strong>{replyTo.name}</strong>:</p>
+                            <p style={{ fontSize: "0.95rem", fontStyle: "italic" }}>"{replyTo.message}"</p>
+                        </div>
+
+                        <div style={{ marginBottom: "20px" }}>
+                            <label style={{ display: "block", marginBottom: "8px", fontSize: "0.85rem", color: "var(--accent-color)", fontWeight: "bold" }}>YOUR RESPONSE (WILL BE SENT VIA EMAIL)</label>
+                            <textarea
+                                style={{
+                                    width: "100%", height: "200px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-glass)",
+                                    borderRadius: "15px", padding: "15px", color: "white", outline: "none", resize: "none"
+                                }}
+                                placeholder="Type your solution here..."
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                            />
+                        </div>
+
+                        <div style={{ display: "flex", gap: "10px" }}>
+                            <button
+                                className="action-btn"
+                                style={{ flex: 1, backgroundColor: "#6366f1", color: "white", padding: "14px" }}
+                                onClick={handleSendReply}
+                                disabled={isReplying || !replyText.trim()}
+                            >
+                                {isReplying ? "Processing..." : "Send Email & Resolve"}
+                            </button>
+                            <button
+                                className="action-btn"
+                                style={{ background: "none", border: "1px solid var(--border-glass)", padding: "14px" }}
+                                onClick={() => setReplyTo(null)}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

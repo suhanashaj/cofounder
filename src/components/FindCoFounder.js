@@ -12,7 +12,7 @@ function FindCoFounder() {
   const [results, setResults] = useState([]);
   const [myConnections, setMyConnections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ skill: "", domain: "" });
+  const [filters, setFilters] = useState({ skill: "", domain: "", location: "" });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -73,8 +73,9 @@ function FindCoFounder() {
       const userSkillNames = extractSkills(u.skills);
       const matchesSkill = !filters.skill || userSkillNames.some(s => s.includes(filters.skill.toLowerCase()));
       const matchesDomain = !filters.domain || u.domain?.toLowerCase().includes(filters.domain.toLowerCase());
+      const matchesLocation = !filters.location || u.location?.toLowerCase().includes(filters.location.toLowerCase());
 
-      return matchesSkill && matchesDomain;
+      return matchesSkill && matchesDomain && matchesLocation;
     });
     setResults(filtered);
   }, [filters, users, username]);
@@ -305,6 +306,7 @@ function FindCoFounder() {
 
         <div className="filters-container" style={{
           display: "flex",
+          flexWrap: "wrap",
           gap: "24px",
           marginBottom: "48px",
           background: "var(--card-bg)",
@@ -331,6 +333,16 @@ function FindCoFounder() {
               placeholder="e.g. Fintech, AI, SaaS..."
               value={filters.domain}
               onChange={(e) => setFilters(prev => ({ ...prev, domain: e.target.value }))}
+              style={{ width: "100%", padding: "16px 20px", borderRadius: "16px", border: "1px solid var(--border-glass)", outline: "none", fontSize: "1rem", color: "var(--text-main)", background: "rgba(255, 255, 255, 0.05)", transition: "all 0.3s" }}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: "250px" }}>
+            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", marginBottom: "12px", color: "var(--accent-color)", textTransform: "uppercase", letterSpacing: "1px" }}>Location</label>
+            <input
+              type="text"
+              placeholder="e.g. Kochi, San Francisco..."
+              value={filters.location}
+              onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
               style={{ width: "100%", padding: "16px 20px", borderRadius: "16px", border: "1px solid var(--border-glass)", outline: "none", fontSize: "1rem", color: "var(--text-main)", background: "rgba(255, 255, 255, 0.05)", transition: "all 0.3s" }}
             />
           </div>
@@ -401,6 +413,10 @@ function FindCoFounder() {
                         <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600" }}>DOMAIN</span>
                         <span style={{ fontSize: "0.8rem", fontWeight: "800", color: "white" }}>{user.domain?.toUpperCase() || "N/A"}</span>
                       </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600" }}>LOCATION</span>
+                        <span style={{ fontSize: "0.8rem", fontWeight: "800", color: "white" }}>{user.location?.toUpperCase() || "EARTH"}</span>
+                      </div>
 
                       {user.education?.degree && (
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
@@ -441,13 +457,15 @@ function FindCoFounder() {
                     </div>
                   </div>
 
-                  {status === "pending" ? (
-                    <button className="action-btn" disabled onClick={(e) => e.stopPropagation()} style={{ width: "100%", background: "rgba(255, 255, 255, 0.05)", color: "var(--text-muted)", cursor: "not-allowed", border: "1px solid var(--border-glass)" }}>REQUEST PENDING</button>
-                  ) : status === "accepted" ? (
-                    <button className="action-btn" style={{ width: "100%", background: "linear-gradient(135deg, #10b981, #059669)", color: "white" }} onClick={(e) => { e.stopPropagation(); navigate(`/messages?user=${user.username}`); }}>OPEN CHANNEL</button>
-                  ) : (
-                    <button className="action-btn" style={{ width: "100%" }} onClick={(e) => { e.stopPropagation(); handleConnect(user.username); }}>QUICK CONNECT</button>
-                  )}
+                  {
+                    status === "pending" ? (
+                      <button className="action-btn" disabled onClick={(e) => e.stopPropagation()} style={{ width: "100%", background: "rgba(255, 255, 255, 0.05)", color: "var(--text-muted)", cursor: "not-allowed", border: "1px solid var(--border-glass)" }}>REQUEST PENDING</button>
+                    ) : status === "accepted" ? (
+                      <button className="action-btn" style={{ width: "100%", background: "linear-gradient(135deg, #10b981, #059669)", color: "white" }} onClick={(e) => { e.stopPropagation(); navigate(`/messages?user=${user.username}`); }}>OPEN CHANNEL</button>
+                    ) : (
+                      <button className="action-btn" style={{ width: "100%" }} onClick={(e) => { e.stopPropagation(); handleConnect(user.username); }}>QUICK CONNECT</button>
+                    )
+                  }
                 </div>
               );
             })
@@ -459,8 +477,8 @@ function FindCoFounder() {
         </div>
 
         {renderProfileModal()}
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }
 

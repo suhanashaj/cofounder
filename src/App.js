@@ -19,6 +19,10 @@ import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import HelpCenter from "./components/HelpCenter";
 import Notifications from "./components/Notifications";
+import Contact from "./components/Contact";
+import Privacy from "./components/Privacy";
+import Terms from "./components/Terms";
+import Security from "./components/Security";
 
 function App() {
   const getUser = () => sessionStorage.getItem("loggedInUser");
@@ -57,6 +61,10 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/help-center" element={<HelpCenter />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/security" element={<Security />} />
 
         {/* Catch-all Route */}
         <Route path="*" element={<Navigate to="/" />} />

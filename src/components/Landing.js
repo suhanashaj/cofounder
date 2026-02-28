@@ -182,13 +182,13 @@ function Landing() {
                             <h4>Resources</h4>
                             <span className="footer-link-span" onClick={() => navigate("/blog")}>Blog</span>
                             <span className="footer-link-span" onClick={() => navigate("/help-center")}>Help Center</span>
-                            <a href="#contact">Contact</a>
+                            <span className="footer-link-span" onClick={() => navigate("/contact")}>Contact</span>
                         </div>
                         <div className="footer-column">
                             <h4>Legal</h4>
-                            <a href="#privacy">Privacy</a>
-                            <a href="#terms">Terms</a>
-                            <a href="#security">Security</a>
+                            <span className="footer-link-span" onClick={() => navigate("/privacy")}>Privacy</span>
+                            <span className="footer-link-span" onClick={() => navigate("/terms")}>Terms</span>
+                            <span className="footer-link-span" onClick={() => navigate("/security")}>Security</span>
                         </div>
                     </div>
                 </div>

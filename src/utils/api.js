@@ -47,6 +47,7 @@ export const signup = async (username, email, password, role = "user") => {
         skills: "",
         domain: "",
         experience: "",
+        location: "",
         availability: ""
       });
       console.log("Firestore: Successfully created user document for UID", uid);
