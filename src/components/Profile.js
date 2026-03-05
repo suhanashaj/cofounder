@@ -292,6 +292,11 @@ function Profile() {
       }
     }
 
+    // Mandatory CV for everyone
+    if (!profile.cvUrl && !profile.cvFile) {
+      newErrors.cvFile = "CV upload is mandatory";
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       alert("Please fill in all mandatory fields (marked with *)");
@@ -560,62 +565,61 @@ function Profile() {
                   </>
                 )}
 
-                {/* CV UPLOAD SECTION (Only for Co-Founders) */}
-                {(profile.role?.toLowerCase() === "co-founder" || profile.role?.toLowerCase() === "cofounder") && (
-                  <>
-                    <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", margin: "25px 0 15px", textAlign: "left" }}>
-                      CV / Resume (Optional)
-                    </h4>
+                {/* CV UPLOAD SECTION (Mandatory) */}
+                <div style={{ marginTop: "20px" }}>
+                  <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", margin: "25px 0 15px", textAlign: "left" }}>
+                    CV / Resume (Mandatory) <span className="required-star">*</span>
+                  </h4>
 
-                    {profile.cvUrl && (
-                      <div style={{
-                        marginBottom: "15px",
-                        padding: "12px",
-                        background: "rgba(16, 185, 129, 0.05)",
-                        border: "1px solid rgba(16, 185, 129, 0.2)",
-                        borderRadius: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px"
-                      }}>
-                        <span style={{ fontSize: "1.2rem" }}>📄</span>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ fontSize: "0.75rem", fontWeight: "700", margin: 0, color: "white" }}>CV Uploaded</p>
-                          <a href={profile.cvUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "#10b981", textDecoration: "none", fontWeight: "600" }}>View CV ↗</a>
-                        </div>
+                  {profile.cvUrl && (
+                    <div style={{
+                      marginBottom: "15px",
+                      padding: "12px",
+                      background: "rgba(16, 185, 129, 0.05)",
+                      border: "1px solid rgba(16, 185, 129, 0.2)",
+                      borderRadius: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px"
+                    }}>
+                      <span style={{ fontSize: "1.2rem" }}>📄</span>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: "0.75rem", fontWeight: "700", margin: 0, color: "white" }}>CV Uploaded</p>
+                        <a href={profile.cvUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "#10b981", textDecoration: "none", fontWeight: "600" }}>View CV ↗</a>
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    <label
-                      className="file-upload-label"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "10px",
-                        width: "100%",
-                        padding: "12px",
-                        background: "var(--primary-bg)",
-                        border: "1px solid var(--border-glass)",
-                        borderRadius: "12px",
-                        cursor: "pointer",
-                        transition: "all 0.3s",
-                        fontSize: "0.85rem",
-                        fontWeight: "600"
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-color)"; e.currentTarget.style.background = "rgba(99, 102, 241, 0.05)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-glass)"; e.currentTarget.style.background = "var(--primary-bg)"; }}
-                    >
-                      <span>📎</span> {profile.cvFile ? (profile.cvFile.name.length > 20 ? profile.cvFile.name.substring(0, 20) + "..." : profile.cvFile.name) : (profile.cvUrl ? "Replace CV" : "Upload CV")}
-                      <input
-                        type="file"
-                        onChange={(e) => handleFileChange(e, "cvFile")}
-                        style={{ display: "none" }}
-                        accept=".pdf,.doc,.docx"
-                      />
-                    </label>
-                  </>
-                )}
+                  <label
+                    className={`file-upload-label ${errors.cvFile ? "input-error" : ""}`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "10px",
+                      width: "100%",
+                      padding: "12px",
+                      background: "var(--primary-bg)",
+                      border: errors.cvFile ? "1px solid #ef4444" : "1px solid var(--border-glass)",
+                      borderRadius: "12px",
+                      cursor: "pointer",
+                      transition: "all 0.3s",
+                      fontSize: "0.85rem",
+                      fontWeight: "600"
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-color)"; e.currentTarget.style.background = "rgba(99, 102, 241, 0.05)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = errors.cvFile ? "#ef4444" : "var(--border-glass)"; e.currentTarget.style.background = "var(--primary-bg)"; }}
+                  >
+                    <span>📎</span> {profile.cvFile ? (profile.cvFile.name.length > 20 ? profile.cvFile.name.substring(0, 20) + "..." : profile.cvFile.name) : (profile.cvUrl ? "Replace CV" : "Upload CV")}
+                    <input
+                      type="file"
+                      onChange={(e) => handleFileChange(e, "cvFile")}
+                      style={{ display: "none" }}
+                      accept=".pdf,.doc,.docx"
+                    />
+                  </label>
+                  {errors.cvFile && <span className="error-message" style={{ marginTop: "8px", display: "block" }}>{errors.cvFile}</span>}
+                </div>
               </div>
             </div>
 
