@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getConnectionRequests, updateConnectionStatus, logout, sendMessage, getMessages, getUnreadCounts, markMessagesAsRead, getMessagePartners, getCurrentUserProfile, getDirectDriveLink } from "../utils/api";
+import { getConnectionRequests, updateConnectionStatus, logout, sendMessage, getMessages, getUnreadCounts, markMessagesAsRead, getMessagePartners, getCurrentUserProfile, getDirectDriveLink, getProfileAPI } from "../utils/api";
 import "../css/dashboard.css";
+import "../css/modal.css";
 
 function Messages() {
     const navigate = useNavigate();
@@ -18,6 +19,8 @@ function Messages() {
     const [userData, setUserData] = useState(null);
     const cachedProfilePic = getDirectDriveLink(sessionStorage.getItem("userProfilePic"));
     const location = useLocation();
+    const [viewingProfile, setViewingProfile] = useState(null);
+    const [profileLoading, setProfileLoading] = useState(false);
 
     // Handle "user" query parameter from Inbox/Notifications
     useEffect(() => {
@@ -121,6 +124,126 @@ function Messages() {
     const handleLogout = async () => {
         await logout();
         navigate("/login");
+    };
+
+    const handleViewProfile = async (targetUser) => {
+        setProfileLoading(true);
+        const res = await getProfileAPI(targetUser);
+        if (res.success) {
+            setViewingProfile(res.data);
+        } else {
+            alert(res.msg);
+        }
+        setProfileLoading(false);
+    };
+
+    const renderProfileModal = () => {
+        if (!viewingProfile) return null;
+
+        const isFounder = viewingProfile.role?.toLowerCase() === 'founder';
+        const isCoFounder = viewingProfile.role?.toLowerCase() === 'cofounder' || viewingProfile.role?.toLowerCase() === 'co-founder';
+
+        return (
+            <div className="modal-overlay" onClick={() => setViewingProfile(null)}>
+                <div className="profile-modal-content" onClick={e => e.stopPropagation()}>
+                    <button className="modal-close-btn" onClick={() => setViewingProfile(null)}>✕</button>
+
+                    <div className="profile-modal-header">
+                        <img
+                            src={viewingProfile.profilePicUrl || `https://ui-avatars.com/api/?name=${viewingProfile.username}&background=6366f1&color=fff&bold=true&size=200`}
+                            alt="Profile"
+                            className="modal-avatar"
+                        />
+                        <div className="modal-header-info">
+                            <span className="modal-role-badge">{viewingProfile.role}</span>
+                            <h2>{viewingProfile.fullName || viewingProfile.username}</h2>
+                            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "20px" }}>
+                                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>📍 {viewingProfile.location || "Earth"}</span>
+                                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>⚡ {viewingProfile.availability}</span>
+                            </div>
+                            {viewingProfile.startupId && (
+                                <div style={{ padding: "10px 15px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid #10b981", borderRadius: "8px", color: "#10b981", fontWeight: "800", fontSize: "0.8rem", width: "fit-content", marginBottom: "20px" }}>
+                                    🚀 IN A STARTUP
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="modal-details-grid">
+                        <div className="modal-detail-card">
+                            <h4>About</h4>
+                            <p>{viewingProfile.about || "This visionary hasn't added a bio yet."}</p>
+                        </div>
+
+                        <div className="modal-detail-card">
+                            <h4>Industry & Domain</h4>
+                            <p>{viewingProfile.domain || "Not specified"}</p>
+                        </div>
+
+                        {isFounder && (
+                            <>
+                                <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                                    <h4>Startup Idea Description</h4>
+                                    <p>{viewingProfile.startupIdea || "Idea details are private or not yet provided."}</p>
+                                </div>
+                                <div className="modal-detail-card">
+                                    <h4>Company Name</h4>
+                                    <p>{viewingProfile.companyName || "Stealth Startup"}</p>
+                                </div>
+                                <div className="modal-detail-card">
+                                    <h4>Startup Stage</h4>
+                                    <p>{viewingProfile.startupStage || "Ideation"}</p>
+                                </div>
+                                <div className="modal-detail-card">
+                                    <h4>Looking For</h4>
+                                    <p>{viewingProfile.lookingFor} {viewingProfile.otherLookingFor ? `- ${viewingProfile.otherLookingFor}` : ""}</p>
+                                </div>
+                                <div className="modal-detail-card">
+                                    <h4>Required Skills</h4>
+                                    <p>{viewingProfile.requiredSkills || "Passionate collaborators"}</p>
+                                </div>
+                            </>
+                        )}
+
+                        {isCoFounder && (
+                            <>
+                                <div className="modal-detail-card">
+                                    <h4>Skills</h4>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                                        {Array.isArray(viewingProfile.skills) ? viewingProfile.skills.map((s, i) => (
+                                            <span key={i} style={{ fontSize: "0.8rem", background: "rgba(99,102,241,0.1)", padding: "5px 10px", borderRadius: "5px", color: "white" }}>
+                                                {s.name} {s.verified ? "✅" : ""}
+                                            </span>
+                                        )) : viewingProfile.skills}
+                                    </div>
+                                </div>
+                                {viewingProfile.education && (
+                                    <div className="modal-detail-card">
+                                        <h4>Education</h4>
+                                        <p>{viewingProfile.education.degree} from {viewingProfile.education.institution} ({viewingProfile.education.year})</p>
+                                    </div>
+                                )}
+                                {viewingProfile.workExperience && (
+                                    <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                                        <h4>Work Experience</h4>
+                                        <p><strong>{viewingProfile.workExperience.role}</strong> at {viewingProfile.workExperience.company}</p>
+                                        <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "10px" }}>{viewingProfile.workExperience.description}</p>
+                                    </div>
+                                )}
+                                {viewingProfile.projects && (
+                                    <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                                        <h4>Featured Project</h4>
+                                        <p><strong>{viewingProfile.projects.title}</strong></p>
+                                        <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "5px" }}>{viewingProfile.projects.description}</p>
+                                        {viewingProfile.projects.link && <a href={viewingProfile.projects.link} target="_blank" rel="noreferrer" style={{ color: "var(--accent-color)", fontSize: "0.8rem" }}>Live Link ↗</a>}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     const pendingRequests = connections.filter(c => c.to === username && c.status === "pending");
@@ -322,7 +445,12 @@ function Messages() {
                             <div style={{ padding: "24px 32px", borderBottom: "1px solid var(--border-glass)", background: "rgba(255, 255, 255, 0.02)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                                     <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 10px #10b981" }}></div>
-                                    <h2 style={{ fontSize: "1.8rem", margin: 0, fontWeight: "900", color: "white", letterSpacing: "-0.5px" }}>{activeChat}</h2>
+                                    <h2
+                                        style={{ fontSize: "1.8rem", margin: 0, fontWeight: "900", color: "white", letterSpacing: "-0.5px", cursor: "pointer" }}
+                                        onClick={() => handleViewProfile(activeChat)}
+                                    >
+                                        {activeChat} {profileLoading && <span style={{ fontSize: "0.8rem", color: "var(--accent-color)", fontWeight: "400" }}>(loading...)</span>}
+                                    </h2>
                                 </div>
                                 <button
                                     onClick={() => setActiveChat(null)}
@@ -417,6 +545,7 @@ function Messages() {
                         </div>
                     )}
                 </div>
+                {renderProfileModal()}
             </main>
         </div>
     );

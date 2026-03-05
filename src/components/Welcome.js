@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts, getConnectionCount, postOpportunity, getUsers, getAllConnections, sendConnectionRequest, getDirectDriveLink } from "../utils/api";
+import { getCurrentUserProfile, logout, syncEmailVerification, getUnreadCounts, getConnectionCount, postOpportunity, getUsers, getAllConnections, sendConnectionRequest, getDirectDriveLink, getAllFeedbacks } from "../utils/api";
 import "../css/dashboard.css";
 import "../css/modal.css";
 
@@ -19,6 +19,7 @@ function Welcome() {
   const [suggestions, setSuggestions] = useState([]);
   const [isConnecting, setIsConnecting] = useState({});
   const [selectedUser, setSelectedUser] = useState(null);
+  const [globalFeedbacks, setGlobalFeedbacks] = useState([]);
   useEffect(() => {
     // Apply full-screen class to body for this page
     document.body.classList.add("full-screen-page");
@@ -27,12 +28,13 @@ function Welcome() {
       if (username) {
         try {
           // Parallel execution for faster loading
-          const [, profileResult, countResult, allUsers, allConns] = await Promise.all([
+          const [, profileResult, countResult, allUsers, allConns, feedbacks] = await Promise.all([
             syncEmailVerification(),
             getCurrentUserProfile(),
             getConnectionCount(username),
             getUsers(),
-            getAllConnections()
+            getAllConnections(),
+            getAllFeedbacks()
           ]);
 
           if (profileResult.success) {
@@ -100,6 +102,7 @@ function Welcome() {
               setSuggestions(rankedSuggestions);
             }
           }
+          setGlobalFeedbacks(feedbacks);
           setConnectionCount(countResult);
         } catch (error) {
           console.error("Error fetching dashboard data:", error);
@@ -370,9 +373,24 @@ function Welcome() {
             <h1>Hello, {username}!</h1>
             <p>Here's what's happening with your {userData?.role || 'startup'} journey today.</p>
           </div>
-          <div className="user-badge">
-            <div className="badge-dot"></div>
-            <span>{(userData?.role || 'Member').toLowerCase()}</span>
+          <div className="user-badge" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "5px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div className="badge-dot"></div>
+              <span>{(userData?.role || 'Member').toLowerCase()}</span>
+            </div>
+            {userData?.startupId && (
+              <div style={{
+                fontSize: "0.65rem",
+                background: "linear-gradient(135deg, #10b981, #059669)",
+                color: "white",
+                padding: "2px 8px",
+                borderRadius: "4px",
+                fontWeight: "900",
+                letterSpacing: "0.5px"
+              }}>
+                🚀 STARTUP PARTNER
+              </div>
+            )}
           </div>
         </header>
 
@@ -479,6 +497,47 @@ function Welcome() {
             </div>
           </div>
         )}
+
+        {/* Global Feedback Feed */}
+        <div className="community-feed-section" style={{ marginBottom: "40px" }}>
+          <div className="section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "white", margin: 0 }}>Startup Community Milestones</h2>
+            <span style={{ fontSize: "0.9rem", color: "var(--success)", fontWeight: "600" }}>Recent Success Stories ✨</span>
+          </div>
+
+          <div className="feed-container" style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "15px",
+            padding: "20px",
+            background: "rgba(255, 255, 255, 0.02)",
+            borderRadius: "24px",
+            border: "1px solid var(--border-glass)",
+            maxHeight: "500px",
+            overflowY: "auto"
+          }}>
+            {globalFeedbacks.length > 0 ? (
+              globalFeedbacks.map((f, i) => (
+                <div key={i} className="feed-item" style={{
+                  padding: "15px",
+                  background: "rgba(255, 255, 255, 0.03)",
+                  borderRadius: "16px",
+                  border: "1px solid rgba(255, 255, 255, 0.05)"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span style={{ fontWeight: "800", color: "var(--accent-color)", fontSize: "0.85rem" }}>@{f.fromUser}</span>
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                      {f.timestamp ? new Date(f.timestamp.seconds * 1000).toLocaleDateString() : "Recently"}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: "1.5", color: "white" }}>{f.text}</p>
+                </div>
+              ))
+            ) : (
+              <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "20px" }}>No community updates yet. Be the first to share your startup journey!</p>
+            )}
+          </div>
+        </div>
 
         {/* Founder Post Section */}
         {userData?.role?.toLowerCase() === "founder" && (

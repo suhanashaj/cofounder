@@ -1,6 +1,6 @@
 import { auth, db, rtdb } from "../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, updatePassword, setPersistence, browserSessionPersistence, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
-import { doc, setDoc, getDocs, collection, updateDoc, query, where, addDoc, serverTimestamp, getDoc, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, getDocs, collection, updateDoc, query, where, addDoc, serverTimestamp, getDoc, deleteDoc, orderBy, limit } from "firebase/firestore";
 
 import { ref as rtdbRef, get, child } from "firebase/database";
 
@@ -982,5 +982,138 @@ export const verifySpecificSkillAPI = async (username, skillName, status, reason
   } catch (error) {
     console.error("Verify specific skill error:", error);
     return { success: false, msg: error.message };
+  }
+};
+
+// CREATE STARTUP (Form Partnership)
+export const createStartup = async (user1, user2) => {
+  try {
+    const authUser = await ensureAuthReady();
+    if (!authUser) return { success: false, msg: "User not authenticated" };
+
+    const startupsRef = collection(db, "startups");
+
+    // Check if a startup already exists between these two
+    const q1 = query(startupsRef, where("partners", "array-contains", user1));
+    const snapshot1 = await getDocs(q1);
+    let existing = false;
+    snapshot1.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.partners.includes(user2)) existing = true;
+    });
+
+    if (existing) {
+      return { success: false, msg: "Startup partnership already exists." };
+    }
+
+    // Create the startup doc
+    const startupDoc = await addDoc(startupsRef, {
+      partners: [user1, user2],
+      createdAt: serverTimestamp(),
+      status: "active"
+    });
+
+    // Update both user documents with the startupId
+    const usersRef = collection(db, "users");
+    const updatePartner = async (username, partnerName) => {
+      const q = query(usersRef, where("username", "==", username));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        await updateDoc(doc(db, "users", snap.docs[0].id), {
+          startupId: startupDoc.id,
+          partnerName: partnerName
+        });
+      }
+    };
+
+    await Promise.all([
+      updatePartner(user1, user2),
+      updatePartner(user2, user1)
+    ]);
+
+    return { success: true, msg: "Startup partnership formed successfully!", startupId: startupDoc.id };
+  } catch (error) {
+    console.error("Create startup error:", error);
+    return { success: false, msg: error.message };
+  }
+};
+
+// GET STARTUP BY USER
+export const getStartupByUser = async (username) => {
+  try {
+    await ensureAuthReady();
+    const startupsRef = collection(db, "startups");
+    const q = query(startupsRef, where("partners", "array-contains", username));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      return { success: true, data: { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } };
+    }
+    return { success: false, msg: "No startup found for this user." };
+  } catch (error) {
+    console.error("Get startup error:", error);
+    return { success: false, msg: error.message };
+  }
+};
+
+// POST FEEDBACK
+export const postFeedback = async (startupId, fromUser, text) => {
+  try {
+    const user = await ensureAuthReady();
+    if (!user) return { success: false, msg: "User not authenticated" };
+
+    const feedbackRef = collection(db, "feedbacks");
+    await addDoc(feedbackRef, {
+      startupId,
+      fromUser,
+      text,
+      timestamp: serverTimestamp()
+    });
+    return { success: true, msg: "Feedback posted successfully!" };
+  } catch (error) {
+    console.error("Post feedback error:", error);
+    return { success: false, msg: error.message };
+  }
+};
+
+// GET FEEDBACKS FOR STARTUP
+export const getFeedbacks = async (startupId) => {
+  try {
+    await ensureAuthReady();
+    const feedbackRef = collection(db, "feedbacks");
+    const q = query(feedbackRef, where("startupId", "==", startupId));
+    const snapshot = await getDocs(q);
+
+    let list = [];
+    snapshot.forEach(docSnap => list.push({ id: docSnap.id, ...docSnap.data() }));
+
+    // Sort by timestamp
+    list.sort((a, b) => {
+      const t1 = a.timestamp ? (a.timestamp.seconds || 0) : 0;
+      const t2 = b.timestamp ? (b.timestamp.seconds || 0) : 0;
+      return t2 - t1;
+    });
+
+    return list;
+  } catch (error) {
+    console.error("Get feedbacks error:", error);
+    return [];
+  }
+};
+
+// GET ALL FEEDBACKS (Global Feed)
+export const getAllFeedbacks = async () => {
+  try {
+    const feedbackRef = collection(db, "feedbacks");
+    const q = query(feedbackRef, orderBy("timestamp", "desc"), limit(20));
+    const snapshot = await getDocs(q);
+
+    let list = [];
+    snapshot.forEach(docSnap => list.push({ id: docSnap.id, ...docSnap.data() }));
+
+    return list;
+  } catch (error) {
+    console.error("Get all feedbacks error:", error);
+    return [];
   }
 };

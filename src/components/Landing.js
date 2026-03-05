@@ -1,11 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getAllFeedbacks } from "../utils/api";
 import "../css/landing.css";
 
 function Landing() {
     const navigate = useNavigate();
     const isLoggedIn = sessionStorage.getItem("loggedInUser");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [feedbacks, setFeedbacks] = useState([]);
+
+    useEffect(() => {
+        const fetchFeedbacks = async () => {
+            const data = await getAllFeedbacks();
+            setFeedbacks(data);
+        };
+        fetchFeedbacks();
+    }, []);
 
     return (
         <div className="landing-wrapper">
@@ -163,6 +173,50 @@ function Landing() {
                     </ul>
                 </div>
             </section>
+
+            {/* Success Stories Section */}
+            {feedbacks.length > 0 && (
+                <section className="success-stories-section" style={{ padding: "100px 5%", background: "rgba(99, 102, 241, 0.02)", borderTop: "1px solid var(--border-glass)" }}>
+                    <div style={{ textAlign: "center", marginBottom: "60px" }}>
+                        <span style={{ color: "var(--accent-color)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "2px", fontSize: "0.9rem" }}>Community Impact</span>
+                        <h2 style={{ fontSize: "2.5rem", fontWeight: "900", color: "white", marginTop: "10px" }}>Real Stories from Real Founders</h2>
+                    </div>
+
+                    <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                        gap: "30px",
+                        maxWidth: "1200px",
+                        margin: "0 auto"
+                    }}>
+                        {feedbacks.slice(0, 6).map((f, i) => (
+                            <div key={i} style={{
+                                background: "rgba(255, 255, 255, 0.03)",
+                                border: "1px solid var(--border-glass)",
+                                borderRadius: "24px",
+                                padding: "30px",
+                                position: "relative"
+                            }}>
+                                <div style={{ fontSize: "2rem", color: "var(--accent-color)", opacity: 0.2, position: "absolute", top: "20px", left: "20px" }}>"</div>
+                                <p style={{ color: "white", fontSize: "1.1rem", lineHeight: "1.6", marginBottom: "20px", position: "relative", zIndex: 1 }}>{f.text}</p>
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                    <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #6366f1, #a855f7)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "900", color: "white" }}>
+                                        {f.fromUser[0].toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <div style={{ color: "white", fontWeight: "700" }}>@{f.fromUser}</div>
+                                        <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>Startup Partner</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ textAlign: "center", marginTop: "50px" }}>
+                        <button className="btn-secondary" onClick={() => navigate("/signup")}>Join the Community</button>
+                    </div>
+                </section>
+            )}
 
             {/* Footer */}
             <footer className="landing-footer">

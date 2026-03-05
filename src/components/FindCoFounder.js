@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, sendConnectionRequest, getConnectionRequests, getCurrentUserProfile, logout, getDirectDriveLink } from "../utils/api";
+import { getUsers, sendConnectionRequest, getConnectionRequests, getCurrentUserProfile, logout, getDirectDriveLink, createStartup } from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import "../css/dashboard.css";
 import "../css/modal.css";
@@ -99,6 +99,18 @@ function FindCoFounder() {
     }
   };
 
+  const handleFormStartup = async (targetUser) => {
+    if (!window.confirm(`Are you sure you want to form a permanent startup partnership with ${targetUser}? This will be visible to everyone.`)) return;
+
+    setLoading(true);
+    const res = await createStartup(username, targetUser);
+    alert(res.msg);
+    if (res.success) {
+      window.location.reload(); // Refresh to show new status
+    }
+    setLoading(false);
+  };
+
   const getConnectionStatus = (targetUser) => {
     const conn = myConnections.find(c => c.to === targetUser || c.from === targetUser);
     return conn ? conn.status : null;
@@ -151,6 +163,20 @@ function FindCoFounder() {
                   >
                     {getConnectionStatus(selectedUser.username) === 'pending' ? "PENDING..." : "CONNECT NOW"}
                   </button>
+                )}
+                {getConnectionStatus(selectedUser.username) === 'accepted' && !selectedUser.startupId && !userData?.startupId && (
+                  <button
+                    className="action-btn"
+                    style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)", color: "white" }}
+                    onClick={() => handleFormStartup(selectedUser.username)}
+                  >
+                    🚀 FORM STARTUP
+                  </button>
+                )}
+                {selectedUser.startupId && (
+                  <div style={{ padding: "10px 15px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid #10b981", borderRadius: "8px", color: "#10b981", fontWeight: "800", fontSize: "0.8rem" }}>
+                    🚀 IN A STARTUP
+                  </div>
                 )}
                 {selectedUser.pitchVideoUrl && (
                   <a href={getDirectDriveLink(selectedUser.pitchVideoUrl)} target="_blank" rel="noreferrer" className="video-preview-btn">
@@ -389,6 +415,20 @@ function FindCoFounder() {
                         <div>
                           <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "800", color: "white" }}>{user.fullName || user.username}</h3>
                           <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--accent-color)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>{user.role}</p>
+                          {user.startupId && (
+                            <span style={{
+                              fontSize: "0.65rem",
+                              background: "linear-gradient(135deg, #10b981, #059669)",
+                              color: "white",
+                              padding: "2px 8px",
+                              borderRadius: "4px",
+                              fontWeight: "900",
+                              display: "inline-block",
+                              marginTop: "4px"
+                            }}>
+                              🚀 STARTUP PARTNER
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
