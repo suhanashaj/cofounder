@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getOpportunities, logout, getCurrentUserProfile, sendConnectionRequest, getConnectionRequests, getDirectDriveLink } from "../utils/api";
+import { getOpportunities, logout, getCurrentUserProfile, sendConnectionRequest, getConnectionRequests, getDirectDriveLink, getUsers } from "../utils/api";
 import "../css/dashboard.css";
 
 function Notifications() {
@@ -11,6 +11,7 @@ function Notifications() {
     const [myConnections, setMyConnections] = useState([]);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [userData, setUserData] = useState(null);
+    const [userProfiles, setUserProfiles] = useState({});
     const cachedProfilePic = getDirectDriveLink(sessionStorage.getItem("userProfilePic"));
 
     useEffect(() => {
@@ -18,10 +19,11 @@ function Notifications() {
         document.body.classList.add("full-screen-page");
 
         const fetchData = async () => {
-            const [opps, profile, connections] = await Promise.all([
+            const [opps, profile, connections, allUsers] = await Promise.all([
                 getOpportunities(),
                 getCurrentUserProfile(),
-                getConnectionRequests(username)
+                getConnectionRequests(username),
+                getUsers()
             ]);
 
             let filteredOpps = opps;
@@ -44,6 +46,13 @@ function Notifications() {
 
             setOpportunities(filteredOpps);
             setMyConnections(connections);
+
+            const profileMap = {};
+            allUsers.forEach(u => {
+                profileMap[u.username] = u.profilePicUrl;
+            });
+            setUserProfiles(profileMap);
+
             setLoading(false);
         };
         fetchData();
@@ -95,6 +104,7 @@ function Notifications() {
                         src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
                         alt="User"
                         style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+                        referrerPolicy="no-referrer"
                     />
                     <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
                 </div>
@@ -151,17 +161,13 @@ function Notifications() {
                             }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                        <div style={{
-                                            width: "40px",
-                                            height: "40px",
-                                            borderRadius: "12px",
-                                            background: "var(--accent-color)",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            fontSize: "1.2rem"
-                                        }}>
-                                            💡
+                                        <div style={{ position: "relative" }}>
+                                            <img
+                                                src={getDirectDriveLink(userProfiles[opp.username]) || `https://ui-avatars.com/api/?name=${opp.username}&background=6366f1&color=fff&bold=true&size=40`}
+                                                alt={opp.username}
+                                                style={{ width: "40px", height: "40px", borderRadius: "12px", objectFit: "cover", border: "1px solid var(--border-glass)" }}
+                                                referrerPolicy="no-referrer"
+                                            />
                                         </div>
                                         <div>
                                             <h3 style={{ margin: 0, fontSize: "1.1rem", color: "white" }}>{opp.username}</h3>

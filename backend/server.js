@@ -10,7 +10,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
 app.use(express.json());
 
 // Request logging middleware
@@ -43,6 +47,9 @@ oauth2Client.setCredentials({
 });
 
 const drive = google.drive({ version: 'v3', auth: oauth2Client });
+console.log("[Env Check] ClientID:", process.env.GOOGLE_CLIENT_ID?.substring(0, 10) + "...");
+console.log("[Env Check] FolderID:", process.env.GOOGLE_DRIVE_FOLDER_ID);
+console.log("[Env Check] RefreshToken:", process.env.GOOGLE_REFRESH_TOKEN?.substring(0, 10) + "...");
 
 // Diagnostic: Test Google Drive Connection
 async function testDriveConnection() {
@@ -99,13 +106,25 @@ async function getOrCreateFolder(folderName, parentId) {
  * Upload route: Refactored to use OAuth2 and centralized Drive storage.
  */
 app.post('/upload', upload.single('file'), async (req, res) => {
+    console.log(`[Upload] Request received at ${new Date().toISOString()}`);
+    // Per-request auth health check
     try {
-        console.log("[Upload] Request received");
+        await drive.files.list({ pageSize: 1 });
+        console.log("[Upload] Auth state verified: OK");
+    } catch (authErr) {
+        console.error("[Upload] Auth state check FAILED:", authErr.message);
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        return res.status(401).json({ success: false, message: "Drive Auth Expired: " + authErr.message });
+    }
+
+    try {
         if (!req.file) {
+            console.error("[Upload] No file provided in request");
             return res.status(400).json({ success: false, message: 'No file uploaded.' });
         }
 
         const { username, role } = req.body;
+        console.log(`[Upload] Processing for user: ${username}, role: ${role}`);
         if (!username || !role) {
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
             return res.status(400).json({ success: false, message: 'Username and role are required.' });
@@ -152,9 +171,12 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         });
 
         const fileId = driveResponse.data.id;
-        // Construct a direct image URL for display in <img> tags
-        const directLink = `https://lh3.googleusercontent.com/d/${fileId}`;
-        console.log(`[Upload] Successfully uploaded. ID: ${fileId}`);
+        // Images work best with lh3, documents (PDFs) work best with uc?export=view
+        const directLink = mimetype.startsWith('image/')
+            ? `https://lh3.googleusercontent.com/d/${fileId}`
+            : `https://drive.google.com/uc?export=view&id=${fileId}`;
+        console.log(`[Upload] Successfully uploaded. ID: ${fileId} -> ${directLink}`);
+        console.log(`[Upload] WebLink: ${driveResponse.data.webViewLink}`);
 
         // Optional: Make file public (crucial for direct link to work)
         try {

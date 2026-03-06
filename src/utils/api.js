@@ -48,7 +48,8 @@ export const signup = async (username, email, password, role = "user") => {
         domain: "",
         experience: "",
         location: "",
-        availability: ""
+        equity: "",
+        workStyle: ""
       });
       console.log("Firestore: Successfully created user document for UID", uid);
     } catch (fsErr) {
@@ -158,21 +159,40 @@ export const getProfileAPI = async (username) => {
   }
 };
 
-// Helper to convert Drive viewer link to direct image link
-// Helper to convert Drive viewer link to direct image link (Reliable format)
-export const getDirectDriveLink = (url) => {
+// Helper to convert Drive viewer link to direct image link (Reliable modern format)
+export const getDirectDriveLink = (url, isImage = true) => {
   if (!url) return url;
+  if (typeof url !== 'string') return url;
+  if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+
+  // Pattern to catch Google Drive IDs (usually 33 chars, alpha-numeric + underscores/hyphens)
+  const driveIdPattern = /[-\w]{25,}/;
+
+  if (url.includes("lh3.googleusercontent.com")) {
+    const matches = url.match(driveIdPattern);
+    if (matches && !url.includes("/d/")) {
+      return `https://lh3.googleusercontent.com/d/${matches[0]}`;
+    }
+    return url;
+  }
+
   let fileId = "";
   if (url.includes("drive.google.com/file/d/")) {
     fileId = url.split("/d/")[1]?.split("/")[0];
-  } else if (url.includes("drive.google.com/uc?")) {
-    const params = new URLSearchParams(url.split("?")[1]);
+  } else if (url.includes("drive.google.com/uc?") || url.includes("drive.google.com/open?") || url.includes("drive.google.com/thumbnail?")) {
+    const parts = url.split("?");
+    const params = new URLSearchParams(parts[1] || "");
     fileId = params.get("id");
+  } else if (!url.includes("http")) {
+    // If it's just a raw ID
+    fileId = url;
   }
 
-  if (fileId) {
-    // lh3 format is much more reliable for display in <img> tags than drive.google.com/uc
-    return `https://lh3.googleusercontent.com/d/${fileId}`;
+  if (fileId && driveIdPattern.test(fileId)) {
+    // Only use lh3 (direct embed) for images. For docs, uc?view is better.
+    return isImage
+      ? `https://lh3.googleusercontent.com/d/${fileId}`
+      : `https://drive.google.com/uc?export=view&id=${fileId}`;
   }
   return url;
 };
@@ -271,35 +291,13 @@ export const saveProfileAPI = async (username, profileData) => {
       pitchVideoUrl = uploadRes.url;
     }
 
-    // Handle legacy single skill certificate (keep for compatibility if needed, but UI will move away)
-    let skillsCertificateUrl = profileData.skillsCertificateUrl || "";
-    if (profileData.skillsCertificate && profileData.skillsCertificate instanceof File) {
-      const uploadRes = await uploadToGDrive(profileData.skillsCertificate, username, role);
-      skillsCertificateUrl = uploadRes.url;
-      profileData.skillsCertificateStatus = 'approved'; // Single certificate approved logic
-    }
 
-    // New Per-Skill Verification logic
-    if (Array.isArray(profileData.skills)) {
-      for (let i = 0; i < profileData.skills.length; i++) {
-        const skill = profileData.skills[i];
-        if (skill.certificateFile && skill.certificateFile instanceof File) {
-          try {
-            const uploadRes = await uploadToGDrive(skill.certificateFile, username, role);
-            skill.certificateUrl = uploadRes.url;
-            skill.status = 'pending';
-            // Remove the temporary file object before saving to Firestore
-            delete skill.certificateFile;
-          } catch (uploadErr) {
-            console.error(`Error uploading certificate for ${skill.name}:`, uploadErr);
-          }
-        }
-      }
-    }
+
+
 
     const userRef = doc(db, "users", uid);
     // Remove the temporary fields from the object being saved to Firestore
-    const { certificate, profilePic, skillsCertificate, cvFile, pitchVideoFile, ...dataToSave } = profileData;
+    const { certificate, profilePic, cvFile, pitchVideoFile, ...dataToSave } = profileData;
 
     console.log("Saving to Firestore...", { ...dataToSave, certificateUrl, profilePicUrl, cvUrl, pitchVideoUrl });
 
@@ -307,7 +305,6 @@ export const saveProfileAPI = async (username, profileData) => {
       ...dataToSave,
       certificateUrl,
       profilePicUrl,
-      skillsCertificateUrl,
       cvUrl,
       pitchVideoUrl,
       username: username
@@ -316,7 +313,10 @@ export const saveProfileAPI = async (username, profileData) => {
     return {
       success: true,
       msg: "Profile saved successfully!",
-      updatedProfilePicUrl: profilePicUrl ? getDirectDriveLink(profilePicUrl) : null
+      updatedProfilePicUrl: profilePicUrl,
+      updatedCvUrl: cvUrl,
+      updatedCertificateUrl: certificateUrl,
+      updatedPitchVideoUrl: pitchVideoUrl
     };
 
   } catch (err) {

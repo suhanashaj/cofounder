@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { saveProfileAPI, getCurrentUserProfile, logout, changePasswordAPI, getStartupByUser } from "../utils/api";
+import { saveProfileAPI, getCurrentUserProfile, logout, changePasswordAPI, getStartupByUser, getDirectDriveLink } from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import FeedbackSection from "./FeedbackSection";
 
@@ -11,11 +11,12 @@ function Profile() {
     skills: [],
     domain: "",
     experience: "",
-    availability: "",
+    equity: "",
+    workStyle: "",
     certificate: null,
     certificateUrl: "",
     profilePic: null,
-    profilePicUrl: "",
+    profilePicUrl: getDirectDriveLink(sessionStorage.getItem("userProfilePic")) || "",
     fullName: "",
     role: "",
     location: "",
@@ -64,14 +65,22 @@ function Profile() {
       try {
         const res = await getCurrentUserProfile();
         if (res.success) {
-          // ... (existing code for skills, edu, work, etc. handled by merge)
           const profileData = res.data;
 
           setProfile(prev => ({
             ...prev,
             ...profileData,
-            // (omitting repetitive merge logic for brevity in TargetContent)
+            profilePicUrl: getDirectDriveLink(profileData.profilePicUrl) || prev.profilePicUrl,
+            skills: Array.isArray(profileData.skills) ? profileData.skills : [],
+            education: profileData.education || { degree: "", institution: "", year: "" },
+            workExperience: profileData.workExperience || { company: "", role: "", duration: "", description: "" },
+            projects: profileData.projects || { title: "", link: "", description: "" },
           }));
+
+          // Sync sessionStorage
+          if (profileData.profilePicUrl) {
+            sessionStorage.setItem("userProfilePic", profileData.profilePicUrl);
+          }
 
           // Fetch Startup data if available
           if (profileData.startupId) {
@@ -172,18 +181,7 @@ function Profile() {
     }));
   };
 
-  const handleSkillFileChange = (e, index) => {
-    const file = e.target.files[0];
-    if (file) {
-      const updatedSkills = [...profile.skills];
-      updatedSkills[index] = {
-        ...updatedSkills[index],
-        certificateFile: file,
-        status: 'pending' // Visual indicator it's ready to upload
-      };
-      setProfile(prev => ({ ...prev, skills: updatedSkills }));
-    }
-  };
+
 
   const handleEducationUpdate = (field, value) => {
     setProfile(prev => ({
@@ -269,9 +267,7 @@ function Profile() {
       newErrors.location = "Location is mandatory";
     }
 
-    if (!profile.availability || profile.availability === "") {
-      newErrors.availability = "Availability is mandatory";
-    }
+
 
     // Role-specific validation
     if (isCoFounder) {
@@ -292,8 +288,8 @@ function Profile() {
       }
     }
 
-    // Mandatory CV for everyone
-    if (!profile.cvUrl && !profile.cvFile) {
+    // Mandatory CV for Co-Founders, optional for Founders
+    if (isCoFounder && !profile.cvUrl && !profile.cvFile) {
       newErrors.cvFile = "CV upload is mandatory";
     }
 
@@ -307,12 +303,25 @@ function Profile() {
     try {
       const data = await saveProfileAPI(username, profile);
       alert(data.msg);
-      // Sync sessionStorage if profile pic was updated
-      if (data.updatedProfilePicUrl) {
-        setProfile(prev => ({ ...prev, profilePicUrl: data.updatedProfilePicUrl }));
-        sessionStorage.setItem("userProfilePic", data.updatedProfilePicUrl);
-      } else if (profile.profilePicUrl) {
-        sessionStorage.setItem("userProfilePic", profile.profilePicUrl);
+
+      if (data.success) {
+        setProfile(prev => ({
+          ...prev,
+          profilePicUrl: data.updatedProfilePicUrl || prev.profilePicUrl,
+          cvUrl: data.updatedCvUrl || prev.cvUrl,
+          certificateUrl: data.updatedCertificateUrl || prev.certificateUrl,
+          pitchVideoUrl: data.updatedPitchVideoUrl || prev.pitchVideoUrl,
+          // Clear file objects so we don't re-upload same file next time
+          profilePic: null,
+          cvFile: null,
+          certificate: null,
+          pitchVideoFile: null
+        }));
+
+        // Sync sessionStorage if profile pic was updated
+        if (data.updatedProfilePicUrl) {
+          sessionStorage.setItem("userProfilePic", data.updatedProfilePicUrl);
+        }
       }
     } catch (err) {
       alert("Error saving profile: " + err.message);
@@ -361,6 +370,7 @@ function Profile() {
             src={profile?.profilePicUrl || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
             alt="User"
             style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+            referrerPolicy="no-referrer"
           />
           <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{profile?.fullName || username}</div>
         </div>
@@ -414,6 +424,7 @@ function Profile() {
                   src={profile.profilePicUrl || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
                   className="profile-avatar-img"
                   alt="Avatar"
+                  referrerPolicy="no-referrer"
                 />
               </div>
               <h3>{profile.fullName || username}</h3>
@@ -568,7 +579,7 @@ function Profile() {
                 {/* CV UPLOAD SECTION (Mandatory) */}
                 <div style={{ marginTop: "20px" }}>
                   <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", margin: "25px 0 15px", textAlign: "left" }}>
-                    CV / Resume (Mandatory) <span className="required-star">*</span>
+                    CV / Resume {profile.role?.toLowerCase() === 'founder' ? "" : "(Mandatory)"} {profile.role?.toLowerCase() !== 'founder' && <span className="required-star">*</span>}
                   </h4>
 
                   {profile.cvUrl && (
@@ -585,7 +596,21 @@ function Profile() {
                       <span style={{ fontSize: "1.2rem" }}>📄</span>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: "0.75rem", fontWeight: "700", margin: 0, color: "white" }}>CV Uploaded</p>
-                        <a href={profile.cvUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "#10b981", textDecoration: "none", fontWeight: "600" }}>View CV ↗</a>
+                        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                          <a href={profile.cvUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "#10b981", textDecoration: "none", fontWeight: "600" }}>View CV ↗</a>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (window.confirm("Are you sure you want to remove your CV?")) {
+                                setProfile(prev => ({ ...prev, cvUrl: "", cvFile: null }));
+                              }
+                            }}
+                            style={{ background: "none", border: "none", color: "#ef4444", fontSize: "0.7rem", fontWeight: "700", cursor: "pointer", padding: 0 }}
+                          >
+                            Remove ✕
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -714,13 +739,7 @@ function Profile() {
                               <span style={{ fontWeight: "700", color: "white" }}>{skill.name} {skill.verified ? "✅" : skill.status === 'pending' ? "⏳" : ""}</span>
                               <button onClick={() => removeSkill(index)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.2rem" }}>×</button>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                              <label style={{ fontSize: "0.75rem", padding: "8px 12px", border: "1px dashed var(--accent-color)", borderRadius: "8px", cursor: "pointer", color: "var(--accent-color)", fontWeight: "600", flex: 1, textAlign: "center" }}>
-                                {skill.certificateUrl ? "Update Proof" : skill.certificateFile ? "File Ready" : "📜 Upload Proof"}
-                                <input type="file" style={{ display: "none" }} onChange={(e) => handleSkillFileChange(e, index)} accept=".pdf,image/*" />
-                              </label>
-                              {skill.certificateUrl && <a href={skill.certificateUrl} target="_blank" rel="noreferrer" style={{ color: "var(--accent-color)", textDecoration: "none", fontSize: "0.75rem" }}>View ↗</a>}
-                            </div>
+
                           </div>
                         ))}
                       </div>
@@ -797,14 +816,25 @@ function Profile() {
                 )}
 
                 <div className="form-group">
-                  <label>{profile.role === 'Founder' ? 'Startup Availability' : 'Availability'} <span className="required-star">*</span></label>
-                  <select name="availability" value={profile.availability} onChange={handleChange} className={errors.availability ? "input-error" : ""}>
-                    <option value="">Select...</option>
-                    <option value="Full-time">Full-time</option>
-                    <option value="Part-time">Part-time</option>
-                    <option value="Weekends">Weekends</option>
+                  <label>{profile.role === 'Founder' ? 'Equity Offered' : 'Equity Expectation'}</label>
+                  <select name="equity" value={profile.equity} onChange={handleChange}>
+                    <option value="">Select Option...</option>
+                    <option value="Equal Split (50/50)">Equal Split (50/50)</option>
+                    <option value="Majority (Founders)">Majority (Founders)</option>
+                    <option value="Negotiable Range (1-10%)">Negotiable Range (1-10%)</option>
+                    <option value="Sweat Equity Only">Sweat Equity Only</option>
+                    <option value="Negotiable">Negotiable</option>
                   </select>
-                  {errors.availability && <span className="error-message">{errors.availability}</span>}
+                </div>
+                <div className="form-group">
+                  <label>Working Preference</label>
+                  <select name="workStyle" value={profile.workStyle} onChange={handleChange}>
+                    <option value="">Select Mode...</option>
+                    <option value="Remote Only">Remote Only</option>
+                    <option value="Hybrid / Kochi">Hybrid / Kochi</option>
+                    <option value="On-site Preferred">On-site Preferred</option>
+                    <option value="Flexible">Flexible</option>
+                  </select>
                 </div>
               </div>
 

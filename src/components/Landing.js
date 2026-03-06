@@ -120,7 +120,7 @@ function Landing() {
                     <div className="feature-card">
                         <span className="feature-icon">🎯</span>
                         <h3>Smart Matching</h3>
-                        <p>Our algorithm connects you based on complementary skills, domain passion, and shared project availability.</p>
+                        <p>Our algorithm connects you based on complementary skills, domain passion, and shared project equity & vision.</p>
                     </div>
 
                     <div className="feature-card">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getConnectionRequests, updateConnectionStatus, logout, sendMessage, getMessages, getUnreadCounts, markMessagesAsRead, getMessagePartners, getCurrentUserProfile, getDirectDriveLink, getProfileAPI } from "../utils/api";
+import { getConnectionRequests, updateConnectionStatus, logout, sendMessage, getMessages, getUnreadCounts, markMessagesAsRead, getMessagePartners, getCurrentUserProfile, getDirectDriveLink, getProfileAPI, getUsers } from "../utils/api";
 import "../css/dashboard.css";
 import "../css/modal.css";
 
@@ -9,6 +9,7 @@ function Messages() {
     const username = sessionStorage.getItem("loggedInUser");
     const [connections, setConnections] = useState([]);
     const [allPartners, setAllPartners] = useState([]);
+    const [partnerProfiles, setPartnerProfiles] = useState({});
     const [activeChat, setActiveChat] = useState(null);
     const [chatMessages, setChatMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
@@ -38,12 +39,19 @@ function Messages() {
     };
 
     const fetchConnections = useCallback(async () => {
-        const [data, partners] = await Promise.all([
+        const [data, partners, allUsers] = await Promise.all([
             getConnectionRequests(username),
-            getMessagePartners(username)
+            getMessagePartners(username),
+            getUsers()
         ]);
         setConnections(data);
         setAllPartners(partners);
+
+        const profileMap = {};
+        allUsers.forEach(u => {
+            profileMap[u.username] = u.profilePicUrl;
+        });
+        setPartnerProfiles(profileMap);
     }, [username]);
 
     const fetchUnread = useCallback(async () => {
@@ -150,16 +158,29 @@ function Messages() {
 
                     <div className="profile-modal-header">
                         <img
-                            src={viewingProfile.profilePicUrl || `https://ui-avatars.com/api/?name=${viewingProfile.username}&background=6366f1&color=fff&bold=true&size=200`}
+                            src={getDirectDriveLink(viewingProfile.profilePicUrl) || `https://ui-avatars.com/api/?name=${viewingProfile.username}&background=6366f1&color=fff&bold=true&size=200`}
                             alt="Profile"
                             className="modal-avatar"
+                            referrerPolicy="no-referrer"
                         />
                         <div className="modal-header-info">
                             <span className="modal-role-badge">{viewingProfile.role}</span>
                             <h2>{viewingProfile.fullName || viewingProfile.username}</h2>
-                            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "20px" }}>
+                            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "15px" }}>
                                 <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>📍 {viewingProfile.location || "Earth"}</span>
-                                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>⚡ {viewingProfile.availability}</span>
+                                {viewingProfile.workStyle && <span style={{ color: "var(--accent-color)", fontSize: "0.9rem", fontWeight: "700" }}>🏠 {viewingProfile.workStyle}</span>}
+                            </div>
+                            <div style={{ display: "flex", gap: "15px", marginBottom: "20px" }}>
+                                {viewingProfile.linkedin && (
+                                    <a href={viewingProfile.linkedin} target="_blank" rel="noreferrer" style={{ color: "white", fontSize: "1.2rem", opacity: 0.8 }}>
+                                        <i className="fab fa-linkedin"></i>
+                                    </a>
+                                )}
+                                {viewingProfile.github && (
+                                    <a href={viewingProfile.github} target="_blank" rel="noreferrer" style={{ color: "white", fontSize: "1.2rem", opacity: 0.8 }}>
+                                        <i className="fab fa-github"></i>
+                                    </a>
+                                )}
                             </div>
                             {viewingProfile.startupId && (
                                 <div style={{ padding: "10px 15px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid #10b981", borderRadius: "8px", color: "#10b981", fontWeight: "800", fontSize: "0.8rem", width: "fit-content", marginBottom: "20px" }}>
@@ -238,6 +259,18 @@ function Messages() {
                                         {viewingProfile.projects.link && <a href={viewingProfile.projects.link} target="_blank" rel="noreferrer" style={{ color: "var(--accent-color)", fontSize: "0.8rem" }}>Live Link ↗</a>}
                                     </div>
                                 )}
+                                {viewingProfile.equity && (
+                                    <div className="modal-detail-card">
+                                        <h4>{isFounder ? "Equity Offered" : "Equity Expectation"}</h4>
+                                        <p style={{ color: "var(--accent-color)", fontWeight: "800" }}>{viewingProfile.equity}</p>
+                                    </div>
+                                )}
+                                {viewingProfile.workStyle && (
+                                    <div className="modal-detail-card">
+                                        <h4>Work Style</h4>
+                                        <p style={{ color: "var(--accent-color)", fontWeight: "800" }}>{viewingProfile.workStyle}</p>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
@@ -286,6 +319,7 @@ function Messages() {
                         src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
                         alt="User"
                         style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+                        referrerPolicy="no-referrer"
                     />
                     <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
                 </div>
@@ -401,8 +435,13 @@ function Messages() {
                                                         margin: 0
                                                     }}
                                                 >
-                                                    <div style={{ width: "52px", height: "52px", borderRadius: "16px", background: partner === 'Admin' ? "linear-gradient(135deg, #10b981, #3b82f6)" : "linear-gradient(135deg, #6366f1, #a855f7)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "20px", fontWeight: "900", fontSize: "1.5rem", boxShadow: "0 8px 20px rgba(0,0,0,0.3)" }}>
-                                                        {partner[0].toUpperCase()}
+                                                    <div style={{ marginRight: "20px", position: "relative" }}>
+                                                        <img
+                                                            src={getDirectDriveLink(partnerProfiles[partner]) || `https://ui-avatars.com/api/?name=${partner}&background=6366f1&color=fff&bold=true&size=52`}
+                                                            alt={partner}
+                                                            style={{ width: "52px", height: "52px", borderRadius: "16px", objectFit: "cover", boxShadow: "0 8px 20px rgba(0,0,0,0.3)", border: "1px solid var(--border-glass)" }}
+                                                            referrerPolicy="no-referrer"
+                                                        />
                                                     </div>
                                                     <div style={{ flexGrow: 1 }}>
                                                         <strong style={{ display: "block", color: "white", fontSize: "1.05rem", marginBottom: "4px" }}>{partner} {partner === 'Admin' && <span style={{ fontSize: "0.6rem", background: "rgba(16, 185, 129, 0.2)", color: "#10b981", padding: "2px 6px", borderRadius: "4px", marginLeft: "5px", border: "1px solid #10b981" }}>SUPPORT</span>}</strong>
@@ -446,9 +485,15 @@ function Messages() {
                                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                                     <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 10px #10b981" }}></div>
                                     <h2
-                                        style={{ fontSize: "1.8rem", margin: 0, fontWeight: "900", color: "white", letterSpacing: "-0.5px", cursor: "pointer" }}
+                                        style={{ fontSize: "1.8rem", margin: 0, fontWeight: "900", color: "white", letterSpacing: "-0.5px", cursor: "pointer", display: "flex", alignItems: "center", gap: "12px" }}
                                         onClick={() => handleViewProfile(activeChat)}
                                     >
+                                        <img
+                                            src={getDirectDriveLink(partnerProfiles[activeChat]) || `https://ui-avatars.com/api/?name=${activeChat}&background=6366f1&color=fff&bold=true&size=40`}
+                                            alt={activeChat}
+                                            style={{ width: "40px", height: "40px", borderRadius: "10px", objectFit: "cover" }}
+                                            referrerPolicy="no-referrer"
+                                        />
                                         {activeChat} {profileLoading && <span style={{ fontSize: "0.8rem", color: "var(--accent-color)", fontWeight: "400" }}>(loading...)</span>}
                                     </h2>
                                 </div>

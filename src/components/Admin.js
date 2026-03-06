@@ -214,6 +214,7 @@ function Admin() {
                         src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
                         alt="User"
                         style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+                        referrerPolicy="no-referrer"
                     />
                     <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
                 </div>
@@ -396,9 +397,10 @@ function Admin() {
                                 <div key={user.username} className="stat-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
                                         <img
-                                            src={user.profilePicUrl || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff`}
+                                            src={getDirectDriveLink(user.profilePicUrl) || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff`}
                                             alt={user.username}
                                             style={{ width: "50px", height: "50px", borderRadius: "50%" }}
+                                            referrerPolicy="no-referrer"
                                         />
                                         <div>
                                             <div style={{ fontWeight: "800", fontSize: "1.1rem" }}>{user.fullName || user.username}</div>
@@ -522,9 +524,10 @@ function Admin() {
                                                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                                     <div style={{ position: "relative" }}>
                                                         <img
-                                                            src={user.profilePicUrl || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true`}
+                                                            src={getDirectDriveLink(user.profilePicUrl) || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true`}
                                                             alt="Avatar"
                                                             style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
+                                                            referrerPolicy="no-referrer"
                                                         />
                                                     </div>
                                                     <div>
@@ -706,9 +709,10 @@ function Admin() {
                                                         <td style={{ padding: "15px" }}>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                                 <img
-                                                                    src={u.profilePicUrl || `https://ui-avatars.com/api/?name=${u.username}&background=6366f1&color=fff&bold=true`}
+                                                                    src={getDirectDriveLink(u.profilePicUrl) || `https://ui-avatars.com/api/?name=${u.username}&background=6366f1&color=fff&bold=true`}
                                                                     alt={u.username}
                                                                     style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: "cover" }}
+                                                                    referrerPolicy="no-referrer"
                                                                 />
                                                                 <div>
                                                                     <div style={{ fontWeight: 'bold' }}>{u.username}</div>

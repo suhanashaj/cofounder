@@ -149,16 +149,29 @@ function Welcome() {
 
           <div className="profile-modal-header">
             <img
-              src={selectedUser.profilePicUrl || `https://ui-avatars.com/api/?name=${selectedUser.username}&background=6366f1&color=fff&bold=true&size=200`}
+              src={getDirectDriveLink(selectedUser.profilePicUrl) || `https://ui-avatars.com/api/?name=${selectedUser.username}&background=6366f1&color=fff&bold=true&size=200`}
               alt="Profile"
               className="modal-avatar"
+              referrerPolicy="no-referrer"
             />
             <div className="modal-header-info">
               <span className="modal-role-badge">{selectedUser.role}</span>
               <h2>{selectedUser.fullName || selectedUser.username}</h2>
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "20px" }}>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "15px" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>📍 {selectedUser.location || "Earth"}</span>
-                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>⚡ {selectedUser.availability}</span>
+                {selectedUser.workStyle && <span style={{ color: "var(--accent-color)", fontSize: "0.9rem", fontWeight: "700" }}>🏠 {selectedUser.workStyle}</span>}
+              </div>
+              <div style={{ display: "flex", gap: "15px", marginBottom: "20px" }}>
+                {selectedUser.linkedin && (
+                  <a href={selectedUser.linkedin} target="_blank" rel="noreferrer" style={{ color: "white", fontSize: "1.2rem", opacity: 0.8 }}>
+                    <i className="fab fa-linkedin"></i>
+                  </a>
+                )}
+                {selectedUser.github && (
+                  <a href={selectedUser.github} target="_blank" rel="noreferrer" style={{ color: "white", fontSize: "1.2rem", opacity: 0.8 }}>
+                    <i className="fab fa-github"></i>
+                  </a>
+                )}
               </div>
               <div style={{ display: "flex", gap: "15px" }}>
                 <button
@@ -172,7 +185,7 @@ function Welcome() {
                   {isConnecting[selectedUser.username] ? "CONNECTING..." : "CONNECT NOW"}
                 </button>
                 {selectedUser.pitchVideoUrl && (
-                  <a href={getDirectDriveLink(selectedUser.pitchVideoUrl)} target="_blank" rel="noreferrer" className="video-preview-btn">
+                  <a href={getDirectDriveLink(selectedUser.pitchVideoUrl, false)} target="_blank" rel="noreferrer" className="video-preview-btn">
                     <span>🎬</span> WATCH PITCH
                   </a>
                 )}
@@ -247,6 +260,18 @@ function Welcome() {
                     <p><strong>{selectedUser.projects.title}</strong></p>
                     <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "5px" }}>{selectedUser.projects.description}</p>
                     {selectedUser.projects.link && <a href={selectedUser.projects.link} target="_blank" rel="noreferrer" style={{ color: "var(--accent-color)", fontSize: "0.8rem" }}>Live Link ↗</a>}
+                  </div>
+                )}
+                {selectedUser.equity && (
+                  <div className="modal-detail-card">
+                    <h4>{isFounder ? "Equity Offered" : "Equity Expectation"}</h4>
+                    <p style={{ color: "var(--accent-color)", fontWeight: "800" }}>{selectedUser.equity}</p>
+                  </div>
+                )}
+                {selectedUser.workStyle && (
+                  <div className="modal-detail-card">
+                    <h4>Work Style</h4>
+                    <p style={{ color: "var(--accent-color)", fontWeight: "800" }}>{selectedUser.workStyle}</p>
                   </div>
                 )}
               </>
@@ -327,6 +352,7 @@ function Welcome() {
             src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=64`}
             alt="User"
             style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid var(--accent-color)", objectFit: "cover", marginBottom: "10px" }}
+            referrerPolicy="no-referrer"
           />
           <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{userData?.fullName || username}</div>
         </div>
@@ -408,6 +434,7 @@ function Welcome() {
                 src={userData?.profilePicUrl || cachedProfilePic || `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff&bold=true&size=128`}
                 alt="Profile"
                 className="about-avatar"
+                referrerPolicy="no-referrer"
               />
             </div>
             <div className="about-details">
@@ -456,9 +483,10 @@ function Welcome() {
                 >
                   <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
                     <img
-                      src={user.profilePicUrl || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true&size=48`}
+                      src={getDirectDriveLink(user.profilePicUrl) || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true&size=48`}
                       alt={user.username}
                       style={{ width: "48px", height: "48px", borderRadius: "50%", marginRight: "12px", border: "1px solid var(--border-glass)" }}
+                      referrerPolicy="no-referrer"
                     />
                     <div>
                       <div style={{ fontWeight: "700", color: "white" }}>{user.fullName || user.username}</div>
@@ -472,7 +500,7 @@ function Welcome() {
                     {user.cvUrl && (
                       <div style={{ marginTop: "8px" }}>
                         <a
-                          href={getDirectDriveLink(user.cvUrl)}
+                          href={getDirectDriveLink(user.cvUrl, false)}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: "var(--accent-color)", textDecoration: "none", fontSize: "0.75rem", fontWeight: "700" }}
