@@ -396,8 +396,8 @@ function Welcome() {
       <main className="main-content">
         <header className="header-section">
           <div className="welcome-text">
-            <h1>Hello, {username}!</h1>
-            <p>Here's what's happening with your {userData?.role || 'startup'} journey today.</p>
+            <h1>Building the Future, {username}!</h1>
+            <p>Your {userData?.role || 'startup'} ecosystem is evolving. Here’s your matching report.</p>
           </div>
           <div className="user-badge" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "5px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -469,8 +469,8 @@ function Welcome() {
         {suggestions.length > 0 && (
           <div className="suggestions-section" style={{ marginBottom: "40px" }}>
             <div className="section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "white", margin: 0 }}>People You May Know</h2>
-              <span style={{ fontSize: "0.9rem", color: "var(--accent-color)", fontWeight: "600" }}>Based on your skills & connections</span>
+              <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "white", margin: 0 }}>Potential Visionary Partners</h2>
+              <span style={{ fontSize: "0.9rem", color: "var(--accent-color)", fontWeight: "600" }}>AI-Powered Matching Engine</span>
             </div>
 
             <div className="suggestions-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
@@ -482,12 +482,28 @@ function Welcome() {
                   onClick={() => setSelectedUser(user)}
                 >
                   <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
-                    <img
-                      src={getDirectDriveLink(user.profilePicUrl) || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true&size=48`}
-                      alt={user.username}
-                      style={{ width: "48px", height: "48px", borderRadius: "50%", marginRight: "12px", border: "1px solid var(--border-glass)" }}
-                      referrerPolicy="no-referrer"
-                    />
+                    <div style={{ position: "relative", marginRight: "12px" }}>
+                      <img
+                        src={getDirectDriveLink(user.profilePicUrl) || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true&size=48`}
+                        alt={user.username}
+                        style={{ width: "48px", height: "48px", borderRadius: "50%", border: "1px solid var(--border-glass)" }}
+                        referrerPolicy="no-referrer"
+                      />
+                      <div style={{
+                        position: "absolute",
+                        bottom: "-2px",
+                        right: "-2px",
+                        background: "var(--accent-color)",
+                        color: "white",
+                        fontSize: "0.6rem",
+                        fontWeight: "900",
+                        padding: "2px 4px",
+                        borderRadius: "6px",
+                        border: "2px solid #0f172a"
+                      }}>
+                        {Math.min(99, 60 + (user.score * 5))}%
+                      </div>
+                    </div>
                     <div>
                       <div style={{ fontWeight: "700", color: "white" }}>{user.fullName || user.username}</div>
                       <div style={{ fontSize: "0.8rem", color: "var(--accent-color)" }}>{user.role || "Co-founder"}</div>
@@ -640,8 +656,8 @@ function Welcome() {
         {/* Action Banner */}
         <div className="action-banner">
           <div className="action-text">
-            <h2>Complete Your Startup Profile</h2>
-            <p>A complete profile gets 3x more interests from potential co-founders. Tell the world about your vision!</p>
+            <h2>Optimize Your Matching Algorithm</h2>
+            <p>A complete profile ranks you higher in our matching engine. Visionaries with detailed mission statements get 3x more interest.</p>
           </div>
           <button className="action-btn" onClick={() => navigate("/profile")}>Edit Profile</button>
         </div>

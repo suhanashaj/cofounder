@@ -4,6 +4,8 @@ import { getUsers, approveUserAPI, rejectUserAPI, getAllConnections, logout, ver
 import { db } from "../firebase";
 import { collection, getDocs, updateDoc, doc, query, orderBy, serverTimestamp } from "firebase/firestore";
 import "../css/dashboard.css";
+import "../css/modal.css";
+
 
 function Admin() {
     const navigate = useNavigate();
@@ -21,6 +23,8 @@ function Admin() {
     const [replyTo, setReplyTo] = useState(null);
     const [replyText, setReplyText] = useState("");
     const [isReplying, setIsReplying] = useState(false);
+    const [selectedFullUser, setSelectedFullUser] = useState(null);
+
 
     const viewCategory = (type) => {
         let filtered = [];
@@ -203,6 +207,116 @@ function Admin() {
     const coFounderCount = users.filter(u => u.role?.toLowerCase() === "co-founder" || u.role?.toLowerCase() === "cofounder").length;
     const connectionCount = connections.length;
 
+    const renderFullProfileModal = () => {
+        if (!selectedFullUser) return null;
+
+        const isFounder = selectedFullUser.role?.toLowerCase() === 'founder';
+        const isCoFounder = selectedFullUser.role?.toLowerCase() === 'cofounder' || selectedFullUser.role?.toLowerCase() === 'co-founder';
+
+        return (
+            <div className="modal-overlay" onClick={() => setSelectedFullUser(null)}>
+                <div className="profile-modal-content" onClick={e => e.stopPropagation()} style={{ border: '2px solid var(--accent-color)' }}>
+                    <button className="modal-close-btn" onClick={() => setSelectedFullUser(null)}>✕</button>
+
+                    <div className="profile-modal-header">
+                        <img
+                            src={getDirectDriveLink(selectedFullUser.profilePicUrl) || `https://ui-avatars.com/api/?name=${selectedFullUser.username}&background=6366f1&color=fff&bold=true&size=200`}
+                            alt="Profile"
+                            className="modal-avatar"
+                            referrerPolicy="no-referrer"
+                        />
+                        <div className="modal-header-info">
+                            <span className="modal-role-badge">{selectedFullUser.role || 'User'}</span>
+                            <h2>{selectedFullUser.fullName || selectedFullUser.username}</h2>
+                            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "15px" }}>
+                                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>📍 {selectedFullUser.location || "Not specified"}</span>
+                                {selectedFullUser.workStyle && <span style={{ color: "var(--accent-color)", fontSize: "0.9rem", fontWeight: "700" }}>🏠 {selectedFullUser.workStyle}</span>}
+                                {selectedFullUser.email && <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>✉️ {selectedFullUser.email}</span>}
+                            </div>
+                            <div style={{ display: "flex", gap: "15px", marginBottom: "20px" }}>
+                                {selectedFullUser.linkedin && (
+                                    <a href={selectedFullUser.linkedin} target="_blank" rel="noreferrer" style={{ color: "white", fontSize: "1.2rem", opacity: 0.8 }}>
+                                        <i className="fab fa-linkedin"></i>
+                                    </a>
+                                )}
+                                {selectedFullUser.github && (
+                                    <a href={selectedFullUser.github} target="_blank" rel="noreferrer" style={{ color: "white", fontSize: "1.2rem", opacity: 0.8 }}>
+                                        <i className="fab fa-github"></i>
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="modal-details-grid">
+                        <div className="modal-detail-card">
+                            <h4>About</h4>
+                            <p>{selectedFullUser.about || "No bio provided."}</p>
+                        </div>
+
+                        <div className="modal-detail-card">
+                            <h4>Industry & Domain</h4>
+                            <p>{selectedFullUser.domain || "Not specified"}</p>
+                        </div>
+
+                        {isFounder && (
+                            <>
+                                <div className="modal-detail-card" style={{ gridColumn: "1 / -1" }}>
+                                    <h4>Startup Idea Description</h4>
+                                    <p>{selectedFullUser.startupIdea || "No idea details provided."}</p>
+                                </div>
+                                <div className="modal-detail-card">
+                                    <h4>Company Name</h4>
+                                    <p>{selectedFullUser.companyName || "N/A"}</p>
+                                </div>
+                                <div className="modal-detail-card">
+                                    <h4>Startup Stage</h4>
+                                    <p>{selectedFullUser.startupStage || "N/A"}</p>
+                                </div>
+                            </>
+                        )}
+
+                        {isCoFounder && (
+                            <>
+                                <div className="modal-detail-card">
+                                    <h4>Skills</h4>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                                        {Array.isArray(selectedFullUser.skills) ? selectedFullUser.skills.map((s, i) => (
+                                            <span key={i} style={{ fontSize: "0.8rem", background: "rgba(99,102,241,0.1)", padding: "5px 10px", borderRadius: "5px", color: "white" }}>
+                                                {s.name} {s.verified ? "✅" : ""}
+                                            </span>
+                                        )) : selectedFullUser.skills || "Not specified"}
+                                    </div>
+                                </div>
+                                {selectedFullUser.experience && (
+                                    <div className="modal-detail-card">
+                                        <h4>Experience</h4>
+                                        <p>{selectedFullUser.experience}</p>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        <div className="modal-detail-card">
+                            <h4>Verification Status</h4>
+                            <p>Certificate: {selectedFullUser.certificateApproved ? "✅ APPROVED" : (selectedFullUser.certificateRejected ? "❌ REJECTED" : "⏳ PENDING")}</p>
+                            <p>Profile: {selectedFullUser.profileApproved ? "✅ APPROVED" : (selectedFullUser.profileRejected ? "❌ REJECTED" : "⏳ PENDING")}</p>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+                        {(!selectedFullUser.certificateApproved || !selectedFullUser.profileApproved) && (
+                            <div style={{ padding: "15px", background: "rgba(245, 158, 11, 0.1)", borderRadius: "12px", border: "1px solid rgba(245, 158, 11, 0.2)", width: "100%" }}>
+                                <p style={{ fontSize: "0.85rem", color: "#f59e0b", margin: 0 }}>Reviewing this user will remove them from the pending list.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+
     return (
         <div className="dashboard-wrapper">
             <aside className="sidebar">
@@ -224,19 +338,19 @@ function Admin() {
                         className={`nav-item ${activeTab === "analytics" ? "active" : ""}`}
                         onClick={() => setActiveTab("analytics")}
                     >
-                        <span>📊</span> Analytics
+                        <span>📊</span> Ecosystem Hub
                     </li>
                     <li
                         className={`nav-item ${activeTab === "verifications" ? "active" : ""}`}
                         onClick={() => setActiveTab("verifications")}
                     >
-                        <span>🛡️</span> Verifications
+                        <span>🛡️</span> Expert Verification
                     </li>
                     <li
                         className={`nav-item ${activeTab === "messages" ? "active" : ""}`}
                         onClick={() => setActiveTab("messages")}
                     >
-                        <span>✉️</span> Help Center
+                        <span>📨</span> Founder Inquiries
                     </li>
                 </ul>
                 <div className="nav-item logout-item" onClick={handleLogout}>
@@ -249,57 +363,62 @@ function Admin() {
                     <div className="welcome-text">
                         <h1>
                             {activeTab === "analytics"
-                                ? "Platform Analytics"
+                                ? "Ecosystem Overview"
                                 : activeTab === "messages"
-                                    ? "Help Center Messages"
-                                    : "User Verifications"}
+                                    ? "Founder Support Tickets"
+                                    : "Expert Review Queue"}
                         </h1>
                         <p>
                             {activeTab === "analytics"
-                                ? "Monitor platform growth and user engagement."
+                                ? "Monitoring platform vitality and connection health."
                                 : activeTab === "messages"
-                                    ? "Manage incoming support and help requests."
-                                    : "Review and verify co-founder certifications."}
+                                    ? "Assisting founders and experts with platform needs."
+                                    : "Ensuring high-integrity profiles for the community."}
                         </p>
                     </div>
                 </header>
 
                 {activeTab === "analytics" ? (
                     <section className="stats-grid">
-                        <div className="stat-card" onClick={() => viewCategory("all")} style={{ cursor: "pointer" }}>
+                        <div className="stat-card" onClick={() => viewCategory("all")}>
                             <div className="stat-header">
-                                <div className="stat-icon" style={{ backgroundColor: "rgba(99, 102, 241, 0.1)", color: "#6366f1" }}>👥</div>
+                                <div className="stat-icon" style={{ backgroundColor: "rgba(99, 102, 241, 0.15)", color: "#6366f1" }}>👥</div>
                             </div>
                             <div className="stat-value">{users.length}</div>
-                            <div className="stat-label">Total Users</div>
+                            <div className="stat-label">Total Visionaries</div>
+                            <div className="stat-footer">Audit ecosystem map <span>→</span></div>
                         </div>
-                        <div className="stat-card" onClick={() => viewCategory("founders")} style={{ cursor: "pointer" }}>
+                        <div className="stat-card" onClick={() => viewCategory("founders")}>
                             <div className="stat-header">
-                                <div className="stat-icon" style={{ backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>👑</div>
+                                <div className="stat-icon" style={{ backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981" }}>🚀</div>
                             </div>
                             <div className="stat-value">{founderCount}</div>
-                            <div className="stat-label">Founders</div>
+                            <div className="stat-label">Venture Founders</div>
+                            <div className="stat-footer">Review leads <span>→</span></div>
                         </div>
-                        <div className="stat-card" onClick={() => viewCategory("cofounders")} style={{ cursor: "pointer" }}>
+                        <div className="stat-card" onClick={() => viewCategory("cofounders")}>
                             <div className="stat-header">
-                                <div className="stat-icon" style={{ backgroundColor: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6" }}>🤝</div>
+                                <div className="stat-icon" style={{ backgroundColor: "rgba(139, 92, 246, 0.15)", color: "#8b5cf6" }}>💡</div>
                             </div>
                             <div className="stat-value">{coFounderCount}</div>
-                            <div className="stat-label">Co-founders</div>
+                            <div className="stat-label">Matching Experts</div>
+                            <div className="stat-footer">Audit expert pool <span>→</span></div>
                         </div>
-                        <div className="stat-card" onClick={() => viewCategory("connections")} style={{ cursor: "pointer" }}>
+                        <div className="stat-card" onClick={() => viewCategory("connections")}>
                             <div className="stat-header">
-                                <div className="stat-icon" style={{ backgroundColor: "rgba(236, 72, 153, 0.1)", color: "#ec4899" }}>🖇️</div>
+                                <div className="stat-icon" style={{ backgroundColor: "rgba(236, 72, 153, 0.15)", color: "#ec4899" }}>🤝</div>
                             </div>
                             <div className="stat-value">{connectionCount}</div>
-                            <div className="stat-label">Connections</div>
+                            <div className="stat-label">Successful Matchings</div>
+                            <div className="stat-footer">Ecosystem pairings <span>→</span></div>
                         </div>
-                        <div className="stat-card" onClick={() => viewCategory("pending")} style={{ cursor: "pointer" }}>
+                        <div className="stat-card" onClick={() => viewCategory("pending")}>
                             <div className="stat-header">
-                                <div className="stat-icon" style={{ backgroundColor: "rgba(245, 158, 11, 0.1)", color: "#f59e0b" }}>⏳</div>
+                                <div className="stat-icon" style={{ backgroundColor: "rgba(245, 158, 11, 0.15)", color: "#f59e0b" }}>⏳</div>
                             </div>
                             <div className="stat-value">{pendingUsers.length}</div>
                             <div className="stat-label">Pending Approval</div>
+                            <div className="stat-footer">Review verifications <span>→</span></div>
                         </div>
                     </section>
                 ) : activeTab === "messages" ? (
@@ -505,130 +624,118 @@ function Admin() {
                         )}
                     </div>
                 ) : (
-                    <div className="progress-section" style={{ padding: "0" }}>
-                        <h2 style={{ padding: "30px 30px 10px", fontSize: "1.2rem" }}>Pending Verifications</h2>
-                        <div style={{ overflowX: "auto" }}>
-                            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-                                <thead>
-                                    <tr style={{ borderBottom: "1px solid var(--border-glass)", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                                        <th style={{ padding: "15px 30px" }}>USER</th>
-                                        <th style={{ padding: "15px 30px" }}>ROLE</th>
-                                        <th style={{ padding: "15px 30px" }}>CERTIFICATE</th>
-                                        <th style={{ padding: "15px 30px" }}>PROFILE</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {pendingUsers.length > 0 ? pendingUsers.map((user, idx) => (
-                                        <tr key={idx} style={{ borderBottom: "1px solid var(--border-glass)" }}>
-                                            <td style={{ padding: "20px 30px" }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                                    <div style={{ position: "relative" }}>
-                                                        <img
-                                                            src={getDirectDriveLink(user.profilePicUrl) || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true`}
-                                                            alt="Avatar"
-                                                            style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
-                                                            referrerPolicy="no-referrer"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <strong>{user.username}</strong>
-                                                        <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>{user.email}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: "20px 30px" }}>
-                                                <span style={{ padding: "4px 10px", backgroundColor: "#ede9fe", color: "#6366f1", borderRadius: "15px", fontSize: "0.75rem", fontWeight: "600" }}>
-                                                    {user.role || 'User'}
-                                                </span>
-                                            </td>
+                    <div className="verifications-section">
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                            <h2 style={{ fontSize: "1.5rem", fontWeight: "800" }}>Pending Verifications</h2>
+                            <span style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>{pendingUsers.length} Users awaiting review</span>
+                        </div>
 
-                                            <td style={{ padding: "20px 30px" }}>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
-                                                    {user.certificateUrl ? (
-                                                        <a href={user.certificateUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#6366f1", fontSize: "0.8rem" }}>
-                                                            View Doc
-                                                        </a>
-                                                    ) : <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>No Doc</span>}
+                        <div className="verification-cards-grid">
+                            {pendingUsers.length > 0 ? pendingUsers.map((user, idx) => (
+                                <div key={idx} className="verification-card" onClick={() => setSelectedFullUser(user)} style={{ cursor: "pointer" }}>
+                                    <div className="verification-badge" style={{
 
+                                        backgroundColor: user.role === 'Founder' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(99, 102, 241, 0.1)',
+                                        color: user.role === 'Founder' ? '#10b981' : '#6366f1'
+                                    }}>
+                                        {user.role || 'User'}
+                                    </div>
+
+                                    <div className="verification-card-header">
+                                        <img
+                                            src={getDirectDriveLink(user.profilePicUrl) || `https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true`}
+                                            alt="Avatar"
+                                            className="verification-card-avatar"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                        <div className="verification-card-info">
+                                            <h3>{user.username}</h3>
+                                            <p>{user.email}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="verification-card-actions">
+                                        <div className="v-action-item">
+                                            <span className="v-section-title">Certificate Hook</span>
+                                            <div className="v-action-group">
+                                                {user.certificateUrl ? (
+                                                    <a href={user.certificateUrl} target="_blank" rel="noopener noreferrer" className="v-doc-link" onClick={e => e.stopPropagation()}>
+                                                        📄 View Doc ↗
+                                                    </a>
+                                                ) : <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>No document</span>}
+
+                                                <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
                                                     {user.certificateApproved ? (
-                                                        <span style={{ color: "var(--success)", fontSize: "0.8rem", fontWeight: "bold" }}>✓ Verified</span>
+                                                        <span className="v-status verified">✓ Verified</span>
                                                     ) : user.certificateRejected ? (
-                                                        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                                                            <span style={{ color: "var(--danger)", fontSize: "0.8rem", fontWeight: "bold" }}>✕ Rejected</span>
+                                                        <div style={{ display: "flex", gap: "5px", alignItems: "center" }} onClick={e => e.stopPropagation()}>
+                                                            <span className="v-status rejected">✕ Rejected</span>
                                                             <button
                                                                 className="action-btn"
-                                                                style={{ padding: "2px 8px", fontSize: "0.65rem", background: "none", border: "1px solid var(--border-glass)", color: "var(--text-main)" }}
-                                                                onClick={() => handleApprove(user.username, 'certificate')}
-                                                            >
-                                                                Approve
-                                                            </button>
+                                                                style={{ padding: "4px 8px", fontSize: "0.6rem", background: "none", border: "1px solid var(--border-glass)", borderRadius: "8px" }}
+                                                                onClick={(e) => { e.stopPropagation(); handleApprove(user.username, 'certificate'); }}
+                                                            >Approve</button>
                                                         </div>
                                                     ) : (
-                                                        <div style={{ display: "flex", gap: "5px" }}>
+                                                        <div style={{ display: "flex", gap: "8px" }} onClick={e => e.stopPropagation()}>
                                                             <button
                                                                 className="action-btn"
-                                                                style={{ padding: "4px 12px", fontSize: "0.7rem" }}
-                                                                onClick={() => handleApprove(user.username, 'certificate')}
-                                                            >
-                                                                Verify Doc
-                                                            </button>
+                                                                style={{ padding: "6px 12px", fontSize: "0.7rem", borderRadius: "10px" }}
+                                                                onClick={(e) => { e.stopPropagation(); handleApprove(user.username, 'certificate'); }}
+                                                            >Approve</button>
                                                             <button
                                                                 className="action-btn"
-                                                                style={{ padding: "4px 12px", fontSize: "0.7rem", backgroundColor: "var(--danger)", color: "white" }}
-                                                                onClick={() => handleReject(user.username, 'certificate')}
-                                                            >
-                                                                Reject
-                                                            </button>
+                                                                style={{ padding: "6px 12px", fontSize: "0.7rem", backgroundColor: "var(--danger)", color: "white", borderRadius: "10px" }}
+                                                                onClick={(e) => { e.stopPropagation(); handleReject(user.username, 'certificate'); }}
+                                                            >Reject</button>
                                                         </div>
                                                     )}
                                                 </div>
-                                            </td>
 
-                                            <td style={{ padding: "20px 30px" }}>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
+                                            </div>
+                                        </div>
+
+                                        <div className="v-action-item">
+                                            <span className="v-section-title">Profile Integrity</span>
+                                            <div className="v-action-group">
+                                                <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
                                                     {user.profileApproved ? (
-                                                        <span style={{ color: "var(--success)", fontSize: "0.8rem", fontWeight: "bold" }}>✓ Approved</span>
+                                                        <span className="v-status verified">✓ Approved</span>
                                                     ) : user.profileRejected ? (
-                                                        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                                                            <span style={{ color: "var(--danger)", fontSize: "0.8rem", fontWeight: "bold" }}>✕ Rejected</span>
+                                                        <div style={{ display: "flex", gap: "5px", alignItems: "center" }} onClick={e => e.stopPropagation()}>
+                                                            <span className="v-status rejected">✕ Rejected</span>
                                                             <button
                                                                 className="action-btn"
-                                                                style={{ padding: "2px 8px", fontSize: "0.65rem", background: "none", border: "1px solid var(--border-glass)", color: "var(--text-main)" }}
-                                                                onClick={() => handleApprove(user.username, 'profile')}
-                                                            >
-                                                                Approve
-                                                            </button>
+                                                                style={{ padding: "4px 8px", fontSize: "0.6rem", background: "none", border: "1px solid var(--border-glass)", borderRadius: "8px" }}
+                                                                onClick={(e) => { e.stopPropagation(); handleApprove(user.username, 'profile'); }}
+                                                            >Approve</button>
                                                         </div>
                                                     ) : (
-                                                        <div style={{ display: "flex", gap: "5px" }}>
+                                                        <div style={{ display: "flex", gap: "8px" }} onClick={e => e.stopPropagation()}>
                                                             <button
                                                                 className="action-btn"
-                                                                style={{ padding: "4px 12px", fontSize: "0.7rem", backgroundColor: "#10b981", color: "white" }}
-                                                                onClick={() => handleApprove(user.username, 'profile')}
-                                                            >
-                                                                Approve
-                                                            </button>
+                                                                style={{ padding: "6px 12px", fontSize: "0.7rem", backgroundColor: "#10b981", color: "white", borderRadius: "10px" }}
+                                                                onClick={(e) => { e.stopPropagation(); handleApprove(user.username, 'profile'); }}
+                                                            >Approve</button>
                                                             <button
                                                                 className="action-btn"
-                                                                style={{ padding: "4px 12px", fontSize: "0.7rem", backgroundColor: "var(--danger)", color: "white" }}
-                                                                onClick={() => handleReject(user.username, 'profile')}
-                                                            >
-                                                                Reject
-                                                            </button>
+                                                                style={{ padding: "6px 12px", fontSize: "0.7rem", backgroundColor: "var(--danger)", color: "white", borderRadius: "10px" }}
+                                                                onClick={(e) => { e.stopPropagation(); handleReject(user.username, 'profile'); }}
+                                                            >Reject</button>
                                                         </div>
                                                     )}
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    )) : (
-                                        <tr>
-                                            <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: "var(--text-muted)" }}>
-                                                {loading ? "Loading users..." : "No users pending verification."}
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            )) : (
+                                <div style={{ gridColumn: "1 / -1", padding: "100px", textAlign: "center", color: "var(--text-muted)" }}>
+                                    <h3 style={{ fontSize: "1.5rem", marginBottom: "10px" }}>Zero Pending Items</h3>
+                                    <p>The queue is empty. Great job!</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -750,6 +857,7 @@ function Admin() {
                     </div>
                 )}
 
+            {renderFullProfileModal()}
             {replyTo && (
                 <div className="modal-overlay" style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,

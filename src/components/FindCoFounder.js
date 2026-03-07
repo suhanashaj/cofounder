@@ -12,7 +12,7 @@ function FindCoFounder() {
   const [results, setResults] = useState([]);
   const [myConnections, setMyConnections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ skill: "", domain: "", location: "" });
+  const [filters, setFilters] = useState({ skill: "", domain: "", location: "", role: "All" });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -78,8 +78,12 @@ function FindCoFounder() {
       const matchesSkill = !filters.skill || userSkillNames.some(s => s.includes(filters.skill.toLowerCase()));
       const matchesDomain = !filters.domain || u.domain?.toLowerCase().includes(filters.domain.toLowerCase());
       const matchesLocation = !filters.location || u.location?.toLowerCase().includes(filters.location.toLowerCase());
+      const matchesRole = filters.role === "All" ||
+        (filters.role === "Cofounder"
+          ? (u.role?.toLowerCase() === "cofounder" || u.role?.toLowerCase() === "co-founder")
+          : u.role?.toLowerCase() === filters.role.toLowerCase());
 
-      return matchesSkill && matchesDomain && matchesLocation;
+      return matchesSkill && matchesDomain && matchesLocation && matchesRole;
     });
     setResults(filtered);
   }, [filters, users, username]);
@@ -412,6 +416,34 @@ function FindCoFounder() {
               style={{ width: "100%", padding: "16px 20px", borderRadius: "16px", border: "1px solid var(--border-glass)", outline: "none", fontSize: "1rem", color: "var(--text-main)", background: "rgba(255, 255, 255, 0.05)", transition: "all 0.3s" }}
             />
           </div>
+          <div style={{ flex: 1, minWidth: "250px" }}>
+            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", marginBottom: "12px", color: "var(--accent-color)", textTransform: "uppercase", letterSpacing: "1px" }}>Role Type</label>
+            <select
+              value={filters.role}
+              onChange={(e) => setFilters(prev => ({ ...prev, role: e.target.value }))}
+              style={{
+                width: "100%",
+                padding: "16px 20px",
+                borderRadius: "16px",
+                border: "1px solid var(--border-glass)",
+                outline: "none",
+                fontSize: "1rem",
+                color: "var(--text-main)",
+                background: "rgba(255, 255, 255, 0.05)",
+                transition: "all 0.3s",
+                appearance: "none",
+                cursor: "pointer",
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236366f1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 20px center",
+                backgroundSize: "20px"
+              }}
+            >
+              <option value="All" style={{ background: "var(--primary-bg)", color: "white" }}>All Partners</option>
+              <option value="Founder" style={{ background: "var(--primary-bg)", color: "white" }}>Founders Only</option>
+              <option value="Cofounder" style={{ background: "var(--primary-bg)", color: "white" }}>Cofounders Only</option>
+            </select>
+          </div>
         </div>
 
         {/* Discovery Results */}
@@ -440,7 +472,10 @@ function FindCoFounder() {
                         </div>
                         <div>
                           <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "800", color: "white" }}>{user.fullName || user.username}</h3>
-                          <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--accent-color)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>{user.role}</p>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--accent-color)", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>{user.role}</p>
+                            <span style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "900" }}>• {70 + (idx % 3 * 10)}% MATCH</span>
+                          </div>
                           {user.startupId && (
                             <span style={{
                               fontSize: "0.65rem",

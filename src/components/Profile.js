@@ -407,8 +407,8 @@ function Profile() {
       <main className="profile-main-content">
         <header className="header-section">
           <div className="welcome-text">
-            <h1>My Profile</h1>
-            <p>Keep your information updated to find the best co-founder matches.</p>
+            <h1>Matching Credentials</h1>
+            <p>Refine your identity. Detailed venture insights increase your match precision.</p>
           </div>
           <button className="action-btn" onClick={() => navigate("/welcome")} style={{ background: "white", color: "var(--accent-color)" }}>
             Back to Dashboard
@@ -707,7 +707,7 @@ function Profile() {
                 </div>
               </div>
 
-              <h3>Professional Details</h3>
+              <h3>Ecosystem Identity</h3>
               <div className="form-grid">
                 {(profile.role?.toLowerCase() === "co-founder" || profile.role?.toLowerCase() === "cofounder") ? (
                   <>
@@ -750,7 +750,7 @@ function Profile() {
                       {errors.domain && <span className="error-message">{errors.domain}</span>}
                     </div>
                     <div className="form-group">
-                      <label>Experience (Years)</label>
+                      <label>Venture Experience (Years)</label>
                       <input name="experience" type="number" value={profile.experience} onChange={handleChange} />
                     </div>
                   </>
@@ -766,8 +766,8 @@ function Profile() {
                       {errors.domain && <span className="error-message">{errors.domain}</span>}
                     </div>
                     <div className="form-group full-width">
-                      <label>Startup Idea Description <span className="required-star">*</span></label>
-                      <textarea name="startupIdea" value={profile.startupIdea} onChange={handleChange} placeholder="What vision are you building?" rows="4" className={errors.startupIdea ? "input-error" : ""} />
+                      <label>Mission Statement & Vision <span className="required-star">*</span></label>
+                      <textarea name="startupIdea" value={profile.startupIdea} onChange={handleChange} placeholder="What vision are you building? Explain your mission to potential partners." rows="4" className={errors.startupIdea ? "input-error" : ""} />
                     </div>
                     <div className="form-group">
                       <label>Stage of Startup</label>
