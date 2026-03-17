@@ -12,7 +12,7 @@ function FindCoFounder() {
   const [results, setResults] = useState([]);
   const [myConnections, setMyConnections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ skill: "", domain: "", location: "", role: "All" });
+  const [filters, setFilters] = useState({ name: "", skill: "", domain: "", location: "", role: "All" });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -75,6 +75,7 @@ function FindCoFounder() {
       if (!u.verified || !u.certificateApproved) return false;
 
       const userSkillNames = extractSkills(u.skills);
+      const matchesName = !filters.name || (u.fullName && u.fullName.toLowerCase().includes(filters.name.toLowerCase())) || (u.username && u.username.toLowerCase().includes(filters.name.toLowerCase()));
       const matchesSkill = !filters.skill || userSkillNames.some(s => s.includes(filters.skill.toLowerCase()));
       const matchesDomain = !filters.domain || u.domain?.toLowerCase().includes(filters.domain.toLowerCase());
       const matchesLocation = !filters.location || u.location?.toLowerCase().includes(filters.location.toLowerCase());
@@ -83,7 +84,7 @@ function FindCoFounder() {
           ? (u.role?.toLowerCase() === "cofounder" || u.role?.toLowerCase() === "co-founder")
           : u.role?.toLowerCase() === filters.role.toLowerCase());
 
-      return matchesSkill && matchesDomain && matchesLocation && matchesRole;
+      return matchesName && matchesSkill && matchesDomain && matchesLocation && matchesRole;
     });
     setResults(filtered);
   }, [filters, users, username]);
@@ -386,6 +387,16 @@ function FindCoFounder() {
           border: "1px solid var(--border-glass)",
           backdropFilter: "blur(20px)"
         }}>
+          <div style={{ flex: 1, minWidth: "250px" }}>
+            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", marginBottom: "12px", color: "var(--accent-color)", textTransform: "uppercase", letterSpacing: "1px" }}>Name / Username</label>
+            <input
+              type="text"
+              placeholder="e.g. Alex Chen..."
+              value={filters.name}
+              onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
+              style={{ width: "100%", padding: "16px 20px", borderRadius: "16px", border: "1px solid var(--border-glass)", outline: "none", fontSize: "1rem", color: "var(--text-main)", background: "rgba(255, 255, 255, 0.05)", transition: "all 0.3s" }}
+            />
+          </div>
           <div style={{ flex: 1, minWidth: "250px" }}>
             <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", marginBottom: "12px", color: "var(--accent-color)", textTransform: "uppercase", letterSpacing: "1px" }}>Skill / Technology</label>
             <input
