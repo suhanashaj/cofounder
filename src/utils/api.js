@@ -78,6 +78,11 @@ export const login = async (email, password) => {
     // Wait for auth state to settle (though signIn usually sets it immediately, good practice)
     await ensureAuthReady();
 
+    if (!res.user.emailVerified) {
+      await auth.signOut();
+      return { success: false, msg: "Please verify your email before logging in." };
+    }
+
     const uid = res.user.uid;
     console.log("Auth: Login successful, UID:", uid);
 
@@ -123,15 +128,23 @@ export const logout = async () => {
 };
 
 // RESEND VERIFICATION
-export const resendVerification = async () => {
+export const resendVerification = async (email, password) => {
   try {
-    await ensureAuthReady();
+    // If not signed in, sign them in temporarily to send the email
+    if (!auth.currentUser && email && password) {
+      const res = await signInWithEmailAndPassword(auth, email.trim(), password);
+      await sendEmailVerification(res.user);
+      await auth.signOut();
+      return { success: true, msg: "Verification email sent!" };
+    }
+
     if (auth.currentUser) {
       await sendEmailVerification(auth.currentUser);
       return { success: true, msg: "Verification email sent!" };
     }
-    return { success: false, msg: "No user logged in" };
+    return { success: false, msg: "Unable to send verification. Try logging in again." };
   } catch (error) {
+    console.error("Resend error:", error);
     return { success: false, msg: error.message };
   }
 };

@@ -57,7 +57,11 @@ function Login() {
   };
 
   const handleResend = async () => {
-    const res = await resendVerification();
+    // resendVerification in api.js currently relies on auth.currentUser
+    // Since we sign them out on failure, we need a way to resend. Let's redirect to a resend page or use a custom API.
+    // Firebase auth requires the user to be signed in to send verification email.
+    // For now, let's just show an alert or let them login to send it again.
+    const res = await resendVerification(email, password);
     alert(res.msg);
   };
 

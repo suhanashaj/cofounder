@@ -62,7 +62,8 @@ async function testDriveConnection() {
         console.log("✅ [GDrive] Connection successful! Found files:", response.data.files.length);
     } catch (error) {
         console.error("❌ [GDrive] Connection FAILED!");
-        console.error("[GDrive] Error Detail:", error.message);
+        const errMsg = error.message ? error.message.replace(/\r?\n|\r/g, " ") : "Unknown Error";
+        console.error("[GDrive] Error Detail:", errMsg);
         console.log("💡 Ensure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN are correct in .env");
     }
 }
