@@ -78,7 +78,10 @@ export const login = async (email, password) => {
     // Wait for auth state to settle (though signIn usually sets it immediately, good practice)
     await ensureAuthReady();
 
-    if (!res.user.emailVerified) {
+    const adminEmails = ["appadmin@gmail.com", "admin@example.com"];
+    const isAdminEmail = adminEmails.includes(trimmedEmail.toLowerCase());
+
+    if (!res.user.emailVerified && !isAdminEmail) {
       await auth.signOut();
       return { success: false, msg: "Please verify your email before logging in." };
     }
